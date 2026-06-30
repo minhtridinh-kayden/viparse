@@ -12,6 +12,21 @@ The differentiator (the moat) is the **Vietnamese normalization layer**: detect 
 encodings to Unicode and enforce NFC. Generic loaders parse the file but emit garbled diacritics
 or wrong normalization; viparse fixes exactly that.
 
+## Golden rules
+
+These are non-negotiable. They override convenience.
+
+1. **Never hand-write a parser.** Wrap a well-maintained engine behind a thin adapter. If an engine
+   gets a CVE or is abandoned, swap the adapter — don't reinvent it.
+2. **Always NFC.** Output is Unicode NFC by default. Normalization is the product; never ship text
+   that isn't consistently normalized.
+3. **Thin adapters.** Engines only extract and attach raw signals. No Vietnamese logic leaks into
+   an engine; that belongs in the normalization layer.
+4. **Heavy engines are lazy.** OCR, LibreOffice, and other heavy dependencies are lazy-imported
+   behind extras (`viparse[ocr]`, `viparse[office]`). `core` must import with stdlib-only deps.
+5. **Every task has acceptance criteria.** A task is done only when its criteria (from the spec)
+   are met and verified by a test.
+
 ## Architecture
 
 The pipeline has four layers; each communicates through intermediate types so they stay decoupled
