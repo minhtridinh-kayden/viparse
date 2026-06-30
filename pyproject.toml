@@ -43,3 +43,7 @@ addopts = "-q"
 [tool.coverage.run]
 source = ["viparse"]
 branch = true
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 80
