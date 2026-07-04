@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from viparse.model import RawExtraction
+from viparse.options import LoadOptions
 from viparse.protocols import Source
 from viparse.registry import EngineRegistry
 
@@ -20,7 +21,7 @@ class StubEngine:
     def supports(self, content_type: str) -> bool:
         return content_type in self._content_types
 
-    def extract(self, source: Source) -> RawExtraction:
+    def extract(self, source: Source, options: LoadOptions) -> RawExtraction:
         return RawExtraction(source=str(source), content_type="", text="", engine=self.name)
 
 

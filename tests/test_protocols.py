@@ -6,11 +6,11 @@ from pathlib import Path
 
 import viparse
 from viparse.model import Document, DocumentMetadata, NormalizedDoc, RawExtraction
+from viparse.options import LoadOptions, OutputFormat
 from viparse.protocols import (
     DEFAULT_PRIORITY,
     Engine,
     Normalizer,
-    OutputFormat,
     Renderer,
     Source,
 )
@@ -24,14 +24,14 @@ class FakeEngine:
     def supports(self, content_type: str) -> bool:
         return content_type == "text/plain"
 
-    def extract(self, source: Source) -> RawExtraction:
+    def extract(self, source: Source, options: LoadOptions) -> RawExtraction:
         return RawExtraction(
             source=str(source), content_type="text/plain", text="raw", engine="fake"
         )
 
 
 class FakeNormalizer:
-    def normalize(self, raw: RawExtraction) -> NormalizedDoc:
+    def normalize(self, raw: RawExtraction, options: LoadOptions) -> NormalizedDoc:
         return NormalizedDoc(
             source=raw.source,
             content_type=raw.content_type,
@@ -85,8 +85,8 @@ def test_engine_supports_and_priority() -> None:
 def test_manual_pipeline_chain() -> None:
     """A fake Engine → Normalizer → Renderer runs end-to-end without heavy deps."""
     engine, normalizer, renderer = FakeEngine(), FakeNormalizer(), FakeRenderer()
-    raw = engine.extract(Path("a.txt"))
-    nd = normalizer.normalize(raw)
+    raw = engine.extract(Path("a.txt"), LoadOptions())
+    nd = normalizer.normalize(raw, LoadOptions())
     doc = renderer.render(nd, "markdown")
     assert isinstance(doc, Document)
     assert doc.text == "RAW"
