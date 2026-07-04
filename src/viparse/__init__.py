@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from viparse.detect import DetectedFormat, detect_format
 from viparse.model import (
     Chunk,
     Document,
@@ -17,15 +18,18 @@ from viparse.protocols import (
     Renderer,
     Source,
 )
+from viparse.registry import EngineRegistry
 
 __version__ = "0.0.0"
 
 __all__ = [
     "DEFAULT_PRIORITY",
     "Chunk",
+    "DetectedFormat",
     "Document",
     "DocumentMetadata",
     "Engine",
+    "EngineRegistry",
     "NormalizedDoc",
     "Normalizer",
     "OutputFormat",
@@ -33,4 +37,5 @@ __all__ = [
     "Renderer",
     "Source",
     "__version__",
+    "detect_format",
 ]
