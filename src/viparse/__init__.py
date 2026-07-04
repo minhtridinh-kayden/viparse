@@ -17,6 +17,7 @@ from viparse.model import (
     NormalizedDoc,
     RawExtraction,
 )
+from viparse.observability import MetricsHook, PipelineMetrics
 from viparse.options import LoadOptions, NormalizeForm, OutputFormat
 from viparse.pipeline import Pipeline
 from viparse.protocols import (
@@ -42,11 +43,13 @@ __all__ = [
     "EngineUnavailable",
     "ExtractionError",
     "LoadOptions",
+    "MetricsHook",
     "NormalizeForm",
     "NormalizedDoc",
     "Normalizer",
     "OutputFormat",
     "Pipeline",
+    "PipelineMetrics",
     "RawExtraction",
     "Renderer",
     "Source",
