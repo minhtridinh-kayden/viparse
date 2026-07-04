@@ -19,6 +19,7 @@ from viparse.model import (
     NormalizedDoc,
     RawExtraction,
 )
+from viparse.normalize.normalizer import VietnameseNormalizer
 from viparse.observability import MetricsHook, PipelineMetrics
 from viparse.options import LoadOptions, NormalizeForm, OutputFormat
 from viparse.pipeline import Pipeline
@@ -58,6 +59,7 @@ __all__ = [
     "Renderer",
     "Source",
     "UnsupportedFormat",
+    "VietnameseNormalizer",
     "ViparseError",
     "__version__",
     "detect_format",
