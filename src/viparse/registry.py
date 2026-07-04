@@ -8,6 +8,7 @@ until one engine succeeds.
 
 from __future__ import annotations
 
+from viparse.errors import EngineUnavailable
 from viparse.protocols import Engine
 
 
@@ -41,10 +42,10 @@ class EngineRegistry:
     def select(self, content_type: str) -> Engine:
         """Return the highest-priority engine for ``content_type``.
 
-        Raises ``ValueError`` if no registered engine supports it. (S1 E1.5 will
-        replace this with a dedicated ``EngineUnavailable`` exception.)
+        Raises :class:`~viparse.errors.EngineUnavailable` if no registered engine
+        supports it.
         """
         chain = self.engines_for(content_type)
         if not chain:
-            raise ValueError(f"no engine registered for content type {content_type!r}")
+            raise EngineUnavailable(f"no engine registered for content type {content_type!r}")
         return chain[0]
