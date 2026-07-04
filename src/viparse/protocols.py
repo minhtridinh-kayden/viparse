@@ -14,15 +14,13 @@ The Protocols are ``runtime_checkable`` so the router/registry and tests can
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Literal, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 from viparse.model import Document, NormalizedDoc, RawExtraction
+from viparse.options import DEFAULT_OUTPUT_FORMAT, LoadOptions, OutputFormat
 
 Source = str | Path
 """A document source: a filesystem path as ``str`` or :class:`~pathlib.Path`."""
-
-OutputFormat = Literal["text", "markdown", "json"]
-"""Supported renderer output formats."""
 
 DEFAULT_PRIORITY = 100
 """Neutral baseline priority for an engine that has no strong preference."""
@@ -47,8 +45,13 @@ class Engine(Protocol):
         """Return ``True`` if this engine can extract the given content type."""
         ...
 
-    def extract(self, source: Source) -> RawExtraction:
-        """Extract raw text and signals from ``source`` into a RawExtraction."""
+    def extract(self, source: Source, options: LoadOptions) -> RawExtraction:
+        """Extract raw text and signals from ``source`` into a RawExtraction.
+
+        ``options`` is always supplied by the orchestrator and carries per-call
+        hints (e.g. ``options.ocr`` to force OCR on or off); an engine may ignore
+        hooks that do not apply to it.
+        """
         ...
 
 
@@ -60,8 +63,14 @@ class Normalizer(Protocol):
     (TCVN3/VNI/VISCII) from the raw signals, convert to Unicode, and enforce NFC.
     """
 
-    def normalize(self, raw: RawExtraction) -> NormalizedDoc:
-        """Normalize raw extracted text to a Unicode-NFC :class:`NormalizedDoc`."""
+    def normalize(self, raw: RawExtraction, options: LoadOptions) -> NormalizedDoc:
+        """Normalize raw extracted text to a Unicode-NFC :class:`NormalizedDoc`.
+
+        ``options`` is always supplied by the orchestrator and carries per-call
+        hints — ``options.encoding`` forces a legacy encoding instead of
+        auto-detecting it, ``options.normalize_form`` selects the target Unicode
+        form (default ``"NFC"``).
+        """
         ...
 
 
@@ -69,7 +78,7 @@ class Normalizer(Protocol):
 class Renderer(Protocol):
     """Renders a :class:`NormalizedDoc` into the final :class:`Document`."""
 
-    def render(self, doc: NormalizedDoc, fmt: OutputFormat = "markdown") -> Document:
+    def render(self, doc: NormalizedDoc, fmt: OutputFormat = DEFAULT_OUTPUT_FORMAT) -> Document:
         """Assemble the final Document, projecting the normalizer's detection
         results onto :class:`DocumentMetadata` and serializing the text per
         ``fmt``: ``"text"`` emits plain text, ``"markdown"`` preserves structure

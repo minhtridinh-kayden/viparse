@@ -10,11 +10,12 @@ from viparse.model import (
     NormalizedDoc,
     RawExtraction,
 )
+from viparse.options import LoadOptions, NormalizeForm, OutputFormat
+from viparse.pipeline import Pipeline
 from viparse.protocols import (
     DEFAULT_PRIORITY,
     Engine,
     Normalizer,
-    OutputFormat,
     Renderer,
     Source,
 )
@@ -30,9 +31,12 @@ __all__ = [
     "DocumentMetadata",
     "Engine",
     "EngineRegistry",
+    "LoadOptions",
+    "NormalizeForm",
     "NormalizedDoc",
     "Normalizer",
     "OutputFormat",
+    "Pipeline",
     "RawExtraction",
     "Renderer",
     "Source",
