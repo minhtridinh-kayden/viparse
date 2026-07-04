@@ -13,7 +13,7 @@ keywords = ["vietnamese", "rag", "document", "parser", "tcvn3", "vni", "nfc"]
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["ruff", "mypy", "pytest", "pytest-cov"]
+dev = ["ruff", "mypy", "pytest", "pytest-cov", "build"]
 
 [project.urls]
 Repository = "https://github.com/minhtridinh/viparse"

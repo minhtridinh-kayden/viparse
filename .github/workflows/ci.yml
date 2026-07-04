@@ -27,13 +27,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
       - name: Lint (ruff)
-        run: |
-          ruff check .
-          ruff format --check .
+        run: bash scripts/dev.sh lint
       - name: Type-check (mypy)
-        run: mypy
+        run: bash scripts/dev.sh type
       - name: Test (pytest + coverage)
-        run: pytest --cov=viparse --cov-report=term-missing
+        run: bash scripts/dev.sh test
 
   audit:
     runs-on: ubuntu-latest
