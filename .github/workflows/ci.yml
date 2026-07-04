@@ -34,3 +34,20 @@ jobs:
         run: mypy
       - name: Test (pytest + coverage)
         run: pytest --cov=viparse --cov-report=term-missing
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install project
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+      - name: Audit dependencies (pip-audit)
+        run: |
+          pip install pip-audit
+          pip-audit --progress-spinner off
