@@ -28,3 +28,11 @@ class EncodingError(ViparseError):
 
 class EngineUnavailable(ViparseError):
     """No engine is registered for the source's content type."""
+
+
+class MissingDependency(ViparseError):
+    """An engine's optional dependency is not installed.
+
+    Distinct from :class:`EngineUnavailable` (the format is unsupported): here the
+    engine exists but its extra was not installed. The message names the extra.
+    """

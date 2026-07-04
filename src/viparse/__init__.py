@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from viparse.detect import DetectedFormat, detect_format
+from viparse.engines.docx import DocxEngine
 from viparse.errors import (
     EncodingError,
     EngineUnavailable,
     ExtractionError,
+    MissingDependency,
     UnsupportedFormat,
     ViparseError,
 )
@@ -35,6 +37,7 @@ __all__ = [
     "DEFAULT_PRIORITY",
     "Chunk",
     "DetectedFormat",
+    "DocxEngine",
     "Document",
     "DocumentMetadata",
     "EncodingError",
@@ -44,6 +47,7 @@ __all__ = [
     "ExtractionError",
     "LoadOptions",
     "MetricsHook",
+    "MissingDependency",
     "NormalizeForm",
     "NormalizedDoc",
     "Normalizer",
