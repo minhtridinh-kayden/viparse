@@ -9,11 +9,18 @@ from viparse.errors import (
     EncodingError,
     EngineUnavailable,
     ExtractionError,
+    MissingDependency,
     UnsupportedFormat,
     ViparseError,
 )
 
-_SUBCLASSES = [UnsupportedFormat, ExtractionError, EncodingError, EngineUnavailable]
+_SUBCLASSES = [
+    UnsupportedFormat,
+    ExtractionError,
+    EncodingError,
+    EngineUnavailable,
+    MissingDependency,
+]
 
 
 @pytest.mark.parametrize("cls", _SUBCLASSES)

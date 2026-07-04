@@ -13,6 +13,8 @@ keywords = ["vietnamese", "rag", "document", "parser", "tcvn3", "vni", "nfc"]
 dependencies = []
 
 [project.optional-dependencies]
+office = ["python-docx>=1.1,<2"]
+all = ["viparse[office]"]
 dev = ["ruff", "mypy", "pytest", "pytest-cov", "build"]
 
 [project.urls]
