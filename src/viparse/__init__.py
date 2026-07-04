@@ -3,6 +3,13 @@
 from __future__ import annotations
 
 from viparse.detect import DetectedFormat, detect_format
+from viparse.errors import (
+    EncodingError,
+    EngineUnavailable,
+    ExtractionError,
+    UnsupportedFormat,
+    ViparseError,
+)
 from viparse.model import (
     Chunk,
     Document,
@@ -29,8 +36,11 @@ __all__ = [
     "DetectedFormat",
     "Document",
     "DocumentMetadata",
+    "EncodingError",
     "Engine",
     "EngineRegistry",
+    "EngineUnavailable",
+    "ExtractionError",
     "LoadOptions",
     "NormalizeForm",
     "NormalizedDoc",
@@ -40,6 +50,8 @@ __all__ = [
     "RawExtraction",
     "Renderer",
     "Source",
+    "UnsupportedFormat",
+    "ViparseError",
     "__version__",
     "detect_format",
 ]

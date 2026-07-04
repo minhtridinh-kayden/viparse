@@ -22,8 +22,9 @@ class DocumentMetadata:
 
     ``encoding_detected``/``encoding_confidence`` record the outcome of the
     Vietnamese normalization layer; ``engine`` names the adapter that extracted
-    the text. ``extra`` holds engine- or format-specific fields without
-    widening this schema.
+    the text. ``warnings`` collects non-fatal issues (e.g. a page that failed to
+    extract under lenient mode); ``extra`` holds engine- or format-specific
+    fields without widening this schema.
     """
 
     source: str
@@ -37,6 +38,7 @@ class DocumentMetadata:
     # Mutable containers are excluded from the generated __hash__ (they are
     # unhashable) so these frozen types stay honestly hashable — usable as set
     # members / dict keys for dedup and caching — while __eq__ still compares them.
+    warnings: list[str] = field(default_factory=list, hash=False)
     extra: dict[str, Any] = field(default_factory=dict, hash=False)
 
 

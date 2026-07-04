@@ -31,9 +31,13 @@ class LoadOptions:
     - ``ocr``: force OCR on (``True``) or off (``False``); ``None`` lets the
       engine decide from the scanned-PDF hint.
     - ``normalize_form``: target Unicode normalization form (default ``"NFC"``).
+    - ``strict``: when ``True`` (default), extraction failures raise; when
+      ``False`` (lenient), the pipeline returns a best-effort result with the
+      failure recorded as a warning in the document metadata.
     """
 
     fmt: OutputFormat = DEFAULT_OUTPUT_FORMAT
     encoding: str | None = None
     ocr: bool | None = None
     normalize_form: NormalizeForm = "NFC"
+    strict: bool = True

@@ -14,10 +14,14 @@ from __future__ import annotations
 from dataclasses import replace
 
 from viparse.detect import DetectedFormat, detect_format
-from viparse.model import Document, RawExtraction
+from viparse.errors import EngineUnavailable, ExtractionError, ViparseError
+from viparse.model import Document, DocumentMetadata, RawExtraction
 from viparse.options import LoadOptions
 from viparse.protocols import Engine, Normalizer, Renderer, Source
 from viparse.registry import EngineRegistry
+
+# Content type used for a lenient result when detection itself failed.
+_UNKNOWN_CONTENT_TYPE = "application/octet-stream"
 
 
 class Pipeline:
@@ -42,14 +46,33 @@ class Pipeline:
         unset, the router's scanned-PDF hint resolves it before extraction.
         """
         opts = options if options is not None else LoadOptions()
-        detected = detect_format(source)
+
+        # Detection is its own stage: on failure the content type is unknown, so
+        # a lenient result falls back to a generic type.
+        try:
+            detected = detect_format(source)
+        except ViparseError as exc:
+            if opts.strict:
+                raise
+            return self._lenient_result(source, _UNKNOWN_CONTENT_TYPE, exc)
+
         opts = self._apply_scan_hint(opts, detected)
-        chain = self._registry.engines_for(detected.content_type)
-        if not chain:
-            raise ValueError(f"no engine registered for content type {detected.content_type!r}")
-        raw = self._extract_with_fallback(chain, source, opts)
-        normalized = self._normalizer.normalize(raw, opts)
-        return self._renderer.render(normalized, opts.fmt)
+        try:
+            chain = self._registry.engines_for(detected.content_type)
+            if not chain:
+                raise EngineUnavailable(
+                    f"no engine registered for content type {detected.content_type!r}"
+                )
+            raw = self._extract_with_fallback(chain, source, opts)
+            normalized = self._normalizer.normalize(raw, opts)
+            return self._renderer.render(normalized, opts.fmt)
+        except ViparseError as exc:
+            # Lenient mode degrades any viparse error in the extract → normalize →
+            # render stages into a best-effort Document with a warning. Non-viparse
+            # errors (programming bugs) always propagate.
+            if opts.strict:
+                raise
+            return self._lenient_result(source, detected.content_type, exc)
 
     @staticmethod
     def _apply_scan_hint(options: LoadOptions, detected: DetectedFormat) -> LoadOptions:
@@ -64,17 +87,31 @@ class Pipeline:
     ) -> RawExtraction:
         """Try each engine in priority order, falling back on failure.
 
-        Returns the first successful extraction. If every engine fails, re-raises
-        the last error. (S1 E1.5 refines this into the typed error/partial policy.)
+        Returns the first successful extraction. If every engine fails, raises
+        :class:`~viparse.errors.ExtractionError` whose message names each engine's
+        failure and whose ``__cause__`` is the primary (highest-priority) engine's
+        exception — so no diagnostic is lost.
         """
-        last_error: Exception | None = None
+        failures: list[Exception] = []
         for engine in chain:
             try:
                 return engine.extract(source, options)
             except Exception as exc:  # noqa: BLE001 — fall back to the next engine
-                last_error = exc
-        assert last_error is not None  # chain is non-empty, so a failure was recorded
-        raise last_error
+                failures.append(exc)
+        detail = "; ".join(f"{type(exc).__name__}: {exc}" for exc in failures)
+        raise ExtractionError(
+            f"all {len(failures)} engine(s) failed to extract {source!s}: {detail}"
+        ) from failures[0]
+
+    @staticmethod
+    def _lenient_result(source: Source, content_type: str, error: ViparseError) -> Document:
+        """Build a best-effort empty Document that records the failure as a warning."""
+        cause = error.__cause__
+        detail = str(error) if cause is None else f"{error}: {cause}"
+        metadata = DocumentMetadata(
+            source=str(source), content_type=content_type, warnings=[detail]
+        )
+        return Document(text="", metadata=metadata)
 
     def run_batch(
         self, sources: list[Source], options: LoadOptions | None = None

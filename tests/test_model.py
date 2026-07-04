@@ -45,6 +45,7 @@ def test_document_metadata_defaults() -> None:
     assert meta.source == "a.docx"
     assert meta.page is None
     assert meta.encoding_confidence is None
+    assert meta.warnings == []
     assert meta.extra == {}
 
 

@@ -16,6 +16,7 @@ from viparse.detect import (
     CONTENT_TYPE_XLSX,
     detect_format,
 )
+from viparse.errors import UnsupportedFormat
 
 
 def _write(path: Path, data: bytes) -> Path:
@@ -47,14 +48,14 @@ def test_detects_pptx(tmp_path: Path) -> None:
 
 def test_plain_zip_is_rejected(tmp_path: Path) -> None:
     f = _write_zip(tmp_path / "a.zip", ["notes.txt"])
-    with pytest.raises(ValueError, match="OOXML"):
+    with pytest.raises(UnsupportedFormat, match="OOXML"):
         detect_format(f)
 
 
 def test_corrupt_zip_is_rejected(tmp_path: Path) -> None:
     """ZIP magic bytes but not a valid archive → clear error, not a crash."""
     f = _write(tmp_path / "a.docx", b"PK\x03\x04" + b"\x00" * 20)
-    with pytest.raises(ValueError, match="corrupt ZIP"):
+    with pytest.raises(UnsupportedFormat, match="corrupt ZIP"):
         detect_format(f)
 
 
@@ -101,5 +102,5 @@ def test_detects_ole2_regardless_of_embedded_streams(tmp_path: Path) -> None:
 
 def test_unknown_bytes_are_rejected(tmp_path: Path) -> None:
     f = _write(tmp_path / "a.txt", b"just some plain text")
-    with pytest.raises(ValueError, match="unrecognized format"):
+    with pytest.raises(UnsupportedFormat, match="unrecognized format"):
         detect_format(f)

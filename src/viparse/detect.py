@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import BinaryIO
 
+from viparse.errors import UnsupportedFormat
 from viparse.protocols import Source
 
 # --- Content types --------------------------------------------------------
@@ -58,8 +59,8 @@ class DetectedFormat:
 def detect_format(source: Source) -> DetectedFormat:
     """Detect the format of ``source`` from its magic bytes.
 
-    Raises ``ValueError`` if the bytes match no supported format. (S1 E1.5 will
-    replace this with a dedicated ``UnsupportedFormat`` exception.)
+    Raises :class:`~viparse.errors.UnsupportedFormat` if the bytes match no
+    supported format.
     """
     path = Path(source)
     with path.open("rb") as fh:
@@ -72,7 +73,7 @@ def detect_format(source: Source) -> DetectedFormat:
         if header.startswith(_ZIP_MAGIC):
             fh.seek(0)
             return DetectedFormat(_classify_zip(fh, path))
-    raise ValueError(f"unrecognized format for {path!s} (magic bytes {header[:4]!r})")
+    raise UnsupportedFormat(f"unrecognized format for {path!s} (magic bytes {header[:4]!r})")
 
 
 def _classify_zip(fh: BinaryIO, path: Path) -> str:
@@ -82,14 +83,14 @@ def _classify_zip(fh: BinaryIO, path: Path) -> str:
         with zipfile.ZipFile(fh) as zf:
             names = set(zf.namelist())
     except zipfile.BadZipFile as exc:
-        raise ValueError(f"corrupt ZIP container: {path!s}") from exc
+        raise UnsupportedFormat(f"corrupt ZIP container: {path!s}") from exc
     if "word/document.xml" in names:
         return CONTENT_TYPE_DOCX
     if "xl/workbook.xml" in names:
         return CONTENT_TYPE_XLSX
     if "ppt/presentation.xml" in names:
         return CONTENT_TYPE_PPTX
-    raise ValueError(f"ZIP container is not a recognized OOXML document: {path!s}")
+    raise UnsupportedFormat(f"ZIP container is not a recognized OOXML document: {path!s}")
 
 
 def _pdf_scanned_hint(window: bytes) -> bool | None:

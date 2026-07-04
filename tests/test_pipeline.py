@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from viparse.detect import CONTENT_TYPE_DOCX
+from viparse.errors import EngineUnavailable, ExtractionError, UnsupportedFormat
 from viparse.model import Document, DocumentMetadata, NormalizedDoc, RawExtraction
 from viparse.options import LoadOptions, OutputFormat
 from viparse.pipeline import Pipeline
@@ -114,7 +115,7 @@ def test_run_uses_default_options(tmp_path: Path) -> None:
 
 def test_run_raises_when_no_engine(tmp_path: Path) -> None:
     pipeline = Pipeline(EngineRegistry(), RecordingNormalizer(), RecordingRenderer())
-    with pytest.raises(ValueError, match="no engine registered"):
+    with pytest.raises(EngineUnavailable, match="no engine registered"):
         pipeline.run(_docx(tmp_path / "a.docx"))
 
 
@@ -151,12 +152,50 @@ def test_run_falls_back_to_next_engine_on_failure(tmp_path: Path) -> None:
     assert engine.seen_options is not None
 
 
-def test_run_raises_last_error_when_all_engines_fail(tmp_path: Path) -> None:
+def test_strict_mode_raises_extraction_error_when_all_engines_fail(tmp_path: Path) -> None:
     reg = EngineRegistry()
     reg.register(FailingEngine())
     pipeline = Pipeline(reg, RecordingNormalizer(), RecordingRenderer())
-    with pytest.raises(RuntimeError, match="boom"):
+    with pytest.raises(ExtractionError, match="boom") as excinfo:
         pipeline.run(_docx(tmp_path / "a.docx"))
+    assert isinstance(excinfo.value.__cause__, RuntimeError)
+
+
+def test_lenient_mode_returns_warning_document_on_extraction_failure(tmp_path: Path) -> None:
+    reg = EngineRegistry()
+    reg.register(FailingEngine())
+    pipeline = Pipeline(reg, RecordingNormalizer(), RecordingRenderer())
+    doc = pipeline.run(_docx(tmp_path / "a.docx"), LoadOptions(strict=False))
+    assert doc.text == ""
+    assert doc.metadata.content_type == CONTENT_TYPE_DOCX
+    assert "boom" in doc.metadata.warnings[0]
+
+
+def test_strict_mode_propagates_unsupported_format(tmp_path: Path) -> None:
+    f = tmp_path / "a.txt"
+    f.write_bytes(b"plain text, not a known format")
+    pipeline, *_ = _pipeline()
+    with pytest.raises(UnsupportedFormat):
+        pipeline.run(f)
+
+
+def test_lenient_mode_handles_unsupported_format(tmp_path: Path) -> None:
+    """An unrecognized file (no __cause__) degrades to a warning document."""
+    f = tmp_path / "a.txt"
+    f.write_bytes(b"plain text, not a known format")
+    pipeline, *_ = _pipeline()
+    doc = pipeline.run(f, LoadOptions(strict=False))
+    assert doc.text == ""
+    assert doc.metadata.content_type == "application/octet-stream"
+    assert doc.metadata.warnings
+
+
+def test_lenient_mode_handles_missing_engine(tmp_path: Path) -> None:
+    pipeline = Pipeline(EngineRegistry(), RecordingNormalizer(), RecordingRenderer())
+    doc = pipeline.run(_docx(tmp_path / "a.docx"), LoadOptions(strict=False))
+    assert doc.text == ""
+    assert doc.metadata.content_type == CONTENT_TYPE_DOCX  # detected before engine lookup
+    assert doc.metadata.warnings
 
 
 def test_run_batch_returns_one_document_per_source(tmp_path: Path) -> None:

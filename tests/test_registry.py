@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 
+from viparse.errors import EngineUnavailable
 from viparse.model import RawExtraction
 from viparse.options import LoadOptions
 from viparse.protocols import Source
@@ -59,7 +60,7 @@ def test_engines_for_returns_empty_when_unsupported() -> None:
 
 def test_select_raises_when_no_engine() -> None:
     reg = EngineRegistry()
-    with pytest.raises(ValueError, match="no engine registered"):
+    with pytest.raises(EngineUnavailable, match="no engine registered"):
         reg.select("application/pdf")
 
 
