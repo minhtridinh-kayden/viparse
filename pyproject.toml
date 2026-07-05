@@ -16,9 +16,10 @@ dependencies = []
 # `pip install viparse` pulls no parser/OCR binaries. `all` is the union of them.
 [project.optional-dependencies]
 office = ["python-docx>=1.1,<2", "openpyxl>=3.1,<4"]
+pdf = ["pdfplumber>=0.11,<0.12"]
 ocr = ["pytesseract>=0.3,<0.4", "pdf2image>=1.17,<2", "pillow>=10,<12"]
-all = ["viparse[office,ocr]"]
-dev = ["ruff", "mypy", "pytest", "pytest-cov", "build"]
+all = ["viparse[office,pdf,ocr]"]
+dev = ["ruff", "mypy", "pytest", "pytest-cov", "build", "reportlab>=4,<5"]
 
 [project.scripts]
 viparse = "viparse.cli:main"
@@ -44,9 +45,10 @@ python_version = "3.11"
 strict = true
 files = ["src"]
 
-# openpyxl ships no type stubs (unlike python-docx); the adapter treats it as Any.
+# openpyxl and pdfplumber ship no type stubs (unlike python-docx); the adapters
+# treat them as Any.
 [[tool.mypy.overrides]]
-module = "openpyxl.*"
+module = ["openpyxl.*", "pdfplumber.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
