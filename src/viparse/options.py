@@ -20,6 +20,9 @@ DEFAULT_OUTPUT_FORMAT: OutputFormat = "markdown"
 NormalizeForm = Literal["NFC", "NFD", "NFKC", "NFKD"]
 """Unicode normalization form. viparse defaults to — and is built around — NFC."""
 
+DEFAULT_NORMALIZE_FORM: NormalizeForm = "NFC"
+"""The single source of truth for the default normalization form (the moat's golden rule)."""
+
 
 @dataclass(frozen=True, slots=True)
 class LoadOptions:
@@ -39,5 +42,5 @@ class LoadOptions:
     fmt: OutputFormat = DEFAULT_OUTPUT_FORMAT
     encoding: str | None = None
     ocr: bool | None = None
-    normalize_form: NormalizeForm = "NFC"
+    normalize_form: NormalizeForm = DEFAULT_NORMALIZE_FORM
     strict: bool = True

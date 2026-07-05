@@ -68,7 +68,7 @@ class VietnameseNormalizer:
     def normalize(self, raw: RawExtraction, options: LoadOptions) -> NormalizedDoc:
         # `.get(...) or []` guards both a missing key and an explicit None value.
         fonts = raw.signals.get("fonts") or []
-        warnings: list[str] = list(raw.warnings)  # carry the extract stage's warnings forward
+        warnings: list[str] = list(raw.warnings)  # carry the extract stage's warnings forwa
 
         if options.encoding:
             encoding: str | None = options.encoding
