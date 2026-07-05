@@ -28,13 +28,15 @@ def test_core_install_has_no_runtime_dependencies() -> None:
 def test_extras_isolate_heavy_engines() -> None:
     extras = _project()["optional-dependencies"]
     assert any("python-docx" in dep for dep in extras["office"])
+    assert any("pdfplumber" in dep for dep in extras["pdf"])
     assert any("pytesseract" in dep for dep in extras["ocr"])
 
 
 def test_all_extra_unions_the_engine_extras() -> None:
-    # Order- and shape-tolerant: `all` must pull in both engine extras, however written.
+    # Order- and shape-tolerant: `all` must pull in every engine extra, however written.
     joined = " ".join(_project()["optional-dependencies"]["all"])
     assert "office" in joined
+    assert "pdf" in joined
     assert "ocr" in joined
 
 
