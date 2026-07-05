@@ -15,7 +15,7 @@ from PIL import Image
 
 from viparse.detect import CONTENT_TYPE_PDF
 from viparse.engines.ocr import OcrEngine
-from viparse.errors import MissingDependency
+from viparse.errors import ExtractionError, MissingDependency
 from viparse.options import LoadOptions
 
 
@@ -44,7 +44,9 @@ def _install(
 ) -> None:
     calls = {"i": 0}
 
-    def image_to_data(image: object, lang: str, output_type: object) -> dict[str, list]:
+    def image_to_data(
+        image: object, lang: str, timeout: int, output_type: object
+    ) -> dict[str, list]:
         if data_error is not None:
             raise data_error
         assert pages is not None
@@ -121,6 +123,13 @@ def test_missing_tesseract_binary_raises(monkeypatch: pytest.MonkeyPatch) -> Non
 def test_missing_poppler_binary_raises(monkeypatch: pytest.MonkeyPatch) -> None:
     _install(monkeypatch, convert_error=_PDFInfoNotInstalled())
     with pytest.raises(MissingDependency, match=r"poppler"):
+        OcrEngine().extract("scan.pdf", LoadOptions())
+
+
+def test_ocr_timeout_raises_extraction_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    # pytesseract raises RuntimeError on the per-page Tesseract timeout.
+    _install(monkeypatch, pages=[_page([("x", 90)])], data_error=RuntimeError("Tesseract timeout"))
+    with pytest.raises(ExtractionError, match="timed out"):
         OcrEngine().extract("scan.pdf", LoadOptions())
 
 

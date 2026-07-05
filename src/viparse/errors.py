@@ -36,3 +36,11 @@ class MissingDependency(ViparseError):
     Distinct from :class:`EngineUnavailable` (the format is unsupported): here the
     engine exists but its extra was not installed. The message names the extra.
     """
+
+
+class UnsafeInput(ViparseError):
+    """The source is rejected by a safety limit (too large, or a decompression bomb).
+
+    Raised before parsing untrusted input, so a hostile file fails fast with a clear
+    error instead of exhausting memory or time (SPEC-8 E8.3).
+    """

@@ -22,6 +22,7 @@ from viparse.engines.xlsx import XlsxEngine
 from viparse.model import Document
 from viparse.normalize.normalizer import VietnameseNormalizer
 from viparse.options import (
+    DEFAULT_MAX_BYTES,
     DEFAULT_NORMALIZE_FORM,
     DEFAULT_OUTPUT_FORMAT,
     LoadOptions,
@@ -52,10 +53,16 @@ def _build_pipeline() -> Pipeline:
 
 
 def _options(
-    output: OutputFormat, encoding: str | None, ocr: bool | None, normalize: NormalizeForm
+    output: OutputFormat,
+    encoding: str | None,
+    ocr: bool | None,
+    normalize: NormalizeForm,
+    max_bytes: int,
 ) -> LoadOptions:
     """Map the public keyword parameters onto the internal :class:`LoadOptions`."""
-    return LoadOptions(fmt=output, encoding=encoding, ocr=ocr, normalize_form=normalize)
+    return LoadOptions(
+        fmt=output, encoding=encoding, ocr=ocr, normalize_form=normalize, max_bytes=max_bytes
+    )
 
 
 def load(
@@ -65,6 +72,7 @@ def load(
     encoding: str | None = None,
     ocr: bool | None = None,
     normalize: NormalizeForm = DEFAULT_NORMALIZE_FORM,
+    max_bytes: int = DEFAULT_MAX_BYTES,
 ) -> list[Document]:
     """Parse ``source`` into a list of Unicode-**NFC** :class:`Document` objects.
 
@@ -74,8 +82,9 @@ def load(
         opt into content-based detection when the source carries no font signal.
     :param ocr: force OCR on/off; ``None`` (default) lets the router decide from the file.
     :param normalize: target Unicode normalization form (default ``"NFC"``).
+    :param max_bytes: reject an input larger than this many bytes (default 100 MiB).
     """
-    options = _options(output, encoding, ocr, normalize)
+    options = _options(output, encoding, ocr, normalize, max_bytes)
     return [_build_pipeline().run(source, options)]
 
 
@@ -86,6 +95,7 @@ def load_batch(
     encoding: str | None = None,
     ocr: bool | None = None,
     normalize: NormalizeForm = DEFAULT_NORMALIZE_FORM,
+    max_bytes: int = DEFAULT_MAX_BYTES,
 ) -> Iterator[list[Document]]:
     """Lazily :func:`load` each source, yielding its result list in order.
 
@@ -97,7 +107,7 @@ def load_batch(
     lazily and nests per source (reserving room for a source that fans out into several
     documents). Both share the same per-source primitive, :meth:`Pipeline.run`.
     """
-    options = _options(output, encoding, ocr, normalize)
+    options = _options(output, encoding, ocr, normalize, max_bytes)
     pipeline = _build_pipeline()
     for source in sources:
         yield [pipeline.run(source, options)]

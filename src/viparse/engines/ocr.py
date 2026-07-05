@@ -22,13 +22,14 @@ from typing import Any
 
 from viparse.detect import CONTENT_TYPE_PDF
 from viparse.engines._shared import blocks_to_text
-from viparse.errors import MissingDependency
+from viparse.errors import ExtractionError, MissingDependency
 from viparse.model import RawExtraction
 from viparse.options import LoadOptions
 from viparse.protocols import DEFAULT_PRIORITY, Source
 
 _DPI = 300  # a good balance of OCR accuracy and speed for text documents
 _LOW_OCR_CONFIDENCE = 60.0  # Tesseract word confidence is 0-100; below this is weak
+_OCR_TIMEOUT_SECONDS = 120  # cap the Tesseract subprocess per page (untrusted-input safety)
 
 _INSTALL_HINT = (
     "OCR needs pytesseract + pdf2image and the Tesseract/poppler binaries; install with: "
@@ -73,6 +74,8 @@ class OcrEngine:
             pages = [_ocr_page(pytesseract, image) for image in images]
         except binary_missing as exc:
             raise MissingDependency(_INSTALL_HINT) from exc
+        except RuntimeError as exc:  # pytesseract raises RuntimeError on timeout / Tesseract error
+            raise ExtractionError(f"OCR failed or timed out: {exc}") from exc
 
         blocks: list[dict[str, Any]] = []
         weak_pages = 0
@@ -103,7 +106,10 @@ class OcrEngine:
 def _ocr_page(pytesseract: Any, image: Any) -> tuple[str, float]:
     """OCR one page image (grayscale), returning its text and mean word confidence."""
     data = pytesseract.image_to_data(
-        image.convert("L"), lang="vie", output_type=pytesseract.Output.DICT
+        image.convert("L"),
+        lang="vie",
+        timeout=_OCR_TIMEOUT_SECONDS,
+        output_type=pytesseract.Output.DICT,
     )
     words: list[str] = []
     confidences: list[float] = []

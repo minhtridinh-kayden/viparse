@@ -12,6 +12,7 @@ from viparse.errors import (
     EngineUnavailable,
     ExtractionError,
     MissingDependency,
+    UnsafeInput,
     UnsupportedFormat,
 )
 from viparse.model import Document, DocumentMetadata, NormalizedDoc, RawExtraction
@@ -241,8 +242,30 @@ def test_select_by_ocr_filters_and_orders() -> None:
         ocr = True
 
     plain, ocr = _Plain(), _Ocr()
-    # The stub engines are duck-typed, not real Engine implementations, so mypy needs
-    # the list-item ignores; forced OCR tries OCR engines first, else they are excluded.
-    assert Pipeline._select_by_ocr([plain, ocr], True) == [ocr, plain]  # type: ignore[list-item]
+    # The stub engines are duck-typed, not real Engine implementations, so mypy needs the
+    # list-item ignores. Forced OCR uses OCR engines exclusively (no plain fallback) when
+    # any exist; with no OCR engine the flag is moot; otherwise OCR engines are excluded.
+    assert Pipeline._select_by_ocr([plain, ocr], True) == [ocr]  # type: ignore[list-item]
+    assert Pipeline._select_by_ocr([plain], True) == [plain]  # type: ignore[list-item]
     assert Pipeline._select_by_ocr([plain, ocr], None) == [plain]  # type: ignore[list-item]
     assert Pipeline._select_by_ocr([plain, ocr], False) == [plain]  # type: ignore[list-item]
+
+
+def test_rejects_oversized_input(tmp_path: Path) -> None:
+    pipeline, *_ = _pipeline()
+    with pytest.raises(UnsafeInput):
+        pipeline.run(_docx(tmp_path / "a.docx"), LoadOptions(max_bytes=10))
+
+
+def test_lenient_mode_degrades_oversized_input(tmp_path: Path) -> None:
+    pipeline, *_ = _pipeline()
+    doc = pipeline.run(_docx(tmp_path / "a.docx"), LoadOptions(max_bytes=10, strict=False))
+    assert doc.text == ""
+    assert doc.metadata.warnings
+
+
+def test_rejects_zip_bomb(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("viparse.safety._MAX_UNCOMPRESSED_BYTES", 1)
+    pipeline, *_ = _pipeline()
+    with pytest.raises(UnsafeInput):
+        pipeline.run(_docx(tmp_path / "a.docx"))

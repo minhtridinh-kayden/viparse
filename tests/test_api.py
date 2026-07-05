@@ -64,3 +64,11 @@ def test_load_batch_is_lazy_and_yields_per_source(tmp_path: Path) -> None:
     assert iter(batch) is batch  # a generator, not a materialized list
     results = list(batch)
     assert [r[0].text for r in results] == ["Một", "Hai"]
+
+
+def test_load_rejects_oversized_input(tmp_path: Path) -> None:
+    from viparse.errors import UnsafeInput
+
+    path = _write_docx(tmp_path / "a.docx", "Xin chào")
+    with pytest.raises(UnsafeInput):
+        load(path, max_bytes=10)
