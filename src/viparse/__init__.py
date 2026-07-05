@@ -20,6 +20,7 @@ from viparse.errors import (
     UnsupportedFormat,
     ViparseError,
 )
+from viparse.integrations import to_langchain_documents, to_llamaindex_documents
 from viparse.model import (
     SCHEMA_VERSION,
     Block,
@@ -88,6 +89,8 @@ __all__ = [
     "SCHEMA_VERSION",
     "Source",
     "Table",
+    "to_langchain_documents",
+    "to_llamaindex_documents",
     "UnsafeInput",
     "UnsupportedFormat",
     "VietnameseNormalizer",
