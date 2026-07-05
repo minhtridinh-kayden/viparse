@@ -40,6 +40,14 @@ def test_converts_vni_via_encoding_override() -> None:
     assert nd.encoding_confidence == pytest.approx(1.0)
 
 
+def test_converts_viscii_via_encoding_override() -> None:
+    source = bytes([0x56, 0x69, 0xAE, 0x74]).decode("latin-1")  # "Việt" in VISCII bytes
+    nd = VietnameseNormalizer().normalize(_raw(source), LoadOptions(encoding="viscii"))
+    assert nd.text == "Việt"
+    assert nd.encoding_detected == "viscii"
+    assert nd.encoding_confidence == pytest.approx(1.0)
+
+
 def test_unicode_text_is_only_nfc_normalized() -> None:
     decomposed = "Vie" + "̣" + "t"  # Việt with a combining dot below
     nd = VietnameseNormalizer().normalize(_raw(decomposed, ["Arial"]), LoadOptions())
@@ -57,8 +65,9 @@ def test_normalize_form_nfd_is_respected() -> None:
 
 
 def test_unknown_encoding_override_warns_and_leaves_text() -> None:
-    nd = VietnameseNormalizer().normalize(_raw("plain", ["Arial"]), LoadOptions(encoding="viscii"))
-    assert nd.encoding_detected == "viscii"
+    # VPS is a real Vietnamese encoding that viparse does not yet have a table for.
+    nd = VietnameseNormalizer().normalize(_raw("plain", ["Arial"]), LoadOptions(encoding="vps"))
+    assert nd.encoding_detected == "vps"
     assert any("no conversion table" in w for w in nd.warnings)
     assert nd.text == "plain"
 
