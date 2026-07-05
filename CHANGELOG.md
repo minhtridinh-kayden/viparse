@@ -9,8 +9,11 @@ All notable changes to viparse are documented here. The format is based on
 ### Added
 
 - **Public API** — `viparse.load(source, *, output, encoding, ocr, normalize, max_bytes,
-  cache, chunk)` and lazy `viparse.load_batch(...)`, returning Unicode-**NFC** `Document`s as
-  markdown / text / json.
+  cache, chunk, settings)` and lazy `viparse.load_batch(...)`, returning Unicode-**NFC**
+  `Document`s as markdown / text / json.
+- **Layered configuration** — `output` / `encoding` / `ocr` / `normalize` / `max_bytes` resolve
+  from function args → `VIPARSE_*` env vars → a `viparse.toml` file → the built-in defaults. A
+  validating `Settings` (via `load_settings()`) raises `ConfigError` on a bad value.
 - **RAG chunking** — opt-in `chunk=ChunkOptions(max_tokens, overlap_tokens)` splits a document
   into retrieval-sized, section-aware `Chunk`s (never splitting a table row) with per-chunk
   `section` / `page` / `sheet` metadata and an ordinal `index`.

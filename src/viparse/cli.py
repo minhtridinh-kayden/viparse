@@ -16,11 +16,13 @@ import shutil
 import sys
 from collections.abc import Sequence
 from pathlib import Path
+from typing import get_args
 
 from viparse import __version__
-from viparse.api import _build_pipeline, _default_engines
-from viparse.errors import ViparseError
-from viparse.options import DEFAULT_NORMALIZE_FORM, LoadOptions, NormalizeForm, OutputFormat
+from viparse.api import _build_pipeline, _default_engines, _resolve_options
+from viparse.config import UNSET
+from viparse.errors import ConfigError, ViparseError
+from viparse.options import NormalizeForm, OutputFormat
 
 # CLI format aliases → the canonical OutputFormat the API expects.
 _OUTPUT_ALIASES: dict[str, OutputFormat] = {
@@ -31,7 +33,7 @@ _OUTPUT_ALIASES: dict[str, OutputFormat] = {
     "json": "json",
 }
 _OUTPUT_SUFFIX: dict[OutputFormat, str] = {"markdown": ".md", "text": ".txt", "json": ".json"}
-_NORMALIZE_FORMS: list[NormalizeForm] = ["NFC", "NFD", "NFKC", "NFKD"]
+_NORMALIZE_FORMS: tuple[NormalizeForm, ...] = get_args(NormalizeForm)  # from the type alias
 # Extensions the built-in engines handle today; used to expand directory arguments.
 _SUPPORTED_SUFFIXES = ("*.docx",)
 
@@ -46,7 +48,25 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
 
     ns = _build_parser().parse_args(args)
-    output = _OUTPUT_ALIASES[ns.output]
+
+    # Resolve config first (before the empty-paths check) so a bad VIPARSE_* / viparse.toml is
+    # reported instead of being masked by "no input files matched". A flag left unset (None)
+    # falls back to env vars / viparse.toml, exactly like the library API; an explicit flag wins.
+    try:
+        options = _resolve_options(
+            None,
+            UNSET if ns.output is None else _OUTPUT_ALIASES[ns.output],
+            UNSET if ns.encoding is None else ns.encoding,
+            UNSET if ns.ocr is None else ns.ocr,
+            UNSET if ns.normalize is None else ns.normalize,
+            UNSET,
+            None,
+        )
+    except ConfigError as exc:
+        sys.stderr.write(f"viparse: {exc}\n")
+        return 1
+    output: OutputFormat = options.fmt
+
     paths = _resolve_paths(ns.paths)
     if not paths:
         sys.stderr.write("viparse: no input files matched\n")
@@ -58,7 +78,6 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     # Build the pipeline once and reuse it across every input in this invocation.
     pipeline = _build_pipeline()
-    options = LoadOptions(fmt=output, encoding=ns.encoding, ocr=ns.ocr, normalize_form=ns.normalize)
     used: set[Path] = set()
     rendered: list[str] = []
     failures = 0
@@ -103,8 +122,8 @@ def _build_parser() -> argparse.ArgumentParser:
         "-o",
         "--output",
         choices=sorted(_OUTPUT_ALIASES),
-        default="md",
-        help="output format (default: md)",
+        default=None,
+        help="output format (default: md, or VIPARSE_OUTPUT / viparse.toml)",
     )
     parser.add_argument(
         "--out", metavar="DIR", help="write one file per input into DIR instead of stdout"
@@ -119,8 +138,8 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--normalize",
         choices=_NORMALIZE_FORMS,
-        default=DEFAULT_NORMALIZE_FORM,
-        help="Unicode normalization form (default: NFC)",
+        default=None,
+        help="Unicode normalization form (default: NFC, or VIPARSE_NORMALIZE / viparse.toml)",
     )
     return parser
 

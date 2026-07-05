@@ -5,6 +5,7 @@ from __future__ import annotations
 from viparse.api import load, load_batch
 from viparse.cache import Cache, DiskCache, MemoryCache
 from viparse.chunk import ChunkOptions, chunk_document
+from viparse.config import Settings, load_settings
 from viparse.detect import DetectedFormat, detect_format
 from viparse.engines.docx import DocxEngine
 from viparse.engines.legacy import LegacyOfficeEngine
@@ -12,6 +13,7 @@ from viparse.engines.ocr import OcrEngine
 from viparse.engines.pdf import PdfEngine
 from viparse.engines.xlsx import XlsxEngine
 from viparse.errors import (
+    ConfigError,
     EncodingError,
     EngineUnavailable,
     ExtractionError,
@@ -56,6 +58,7 @@ __all__ = [
     "Chunk",
     "ChunkOptions",
     "chunk_document",
+    "ConfigError",
     "DetectedFormat",
     "DiskCache",
     "MemoryCache",
@@ -87,8 +90,10 @@ __all__ = [
     "RawExtraction",
     "Renderer",
     "SCHEMA_VERSION",
+    "Settings",
     "Source",
     "Table",
+    "load_settings",
     "to_langchain_documents",
     "to_llamaindex_documents",
     "UnsafeInput",
