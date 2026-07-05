@@ -18,7 +18,9 @@ dependencies = []
 office = ["python-docx>=1.1,<2", "openpyxl>=3.1,<4", "olefile>=0.47,<1"]
 pdf = ["pdfplumber>=0.11,<0.12"]
 ocr = ["pytesseract>=0.3,<0.4", "pdf2image>=1.17,<2", "pillow>=10,<12"]
-all = ["viparse[office,pdf,ocr]"]
+langchain = ["langchain-core>=0.3,<1"]
+llamaindex = ["llama-index-core>=0.11,<1"]
+all = ["viparse[office,pdf,ocr,langchain,llamaindex]"]
 dev = ["ruff", "mypy", "pytest", "pytest-cov", "build", "reportlab>=4,<5", "cyclonedx-bom"]
 
 [project.scripts]
@@ -47,7 +49,15 @@ files = ["src"]
 
 # These libraries ship no type stubs (unlike python-docx); the adapters treat them as Any.
 [[tool.mypy.overrides]]
-module = ["openpyxl.*", "pdfplumber.*", "pytesseract.*", "pdf2image.*", "olefile.*"]
+module = [
+    "openpyxl.*",
+    "pdfplumber.*",
+    "pytesseract.*",
+    "pdf2image.*",
+    "olefile.*",
+    "langchain_core.*",
+    "llama_index.*",
+]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

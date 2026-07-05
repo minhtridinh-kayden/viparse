@@ -14,6 +14,9 @@ All notable changes to viparse are documented here. The format is based on
 - **RAG chunking** — opt-in `chunk=ChunkOptions(max_tokens, overlap_tokens)` splits a document
   into retrieval-sized, section-aware `Chunk`s (never splitting a table row) with per-chunk
   `section` / `page` / `sheet` metadata and an ordinal `index`.
+- **Framework integrations** — `to_langchain_documents(doc)` / `to_llamaindex_documents(doc)`
+  map a `Document` (chunk-aware) onto LangChain / LlamaIndex document types, provenance
+  flattened into their `metadata`. Lazy behind `viparse[langchain]` / `viparse[llamaindex]`.
 - **CLI** — `viparse <files> -o md|text|json` (globs, directories, `--out`,
   `--encoding`/`--ocr`/`--normalize`) and `viparse doctor` (engine + binary availability).
 - **Extraction engines** — DOCX, XLSX, digital PDF, scanned PDF via OCR (`viparse[ocr]`),
