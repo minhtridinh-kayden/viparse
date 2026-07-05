@@ -101,6 +101,20 @@ def test_normalizer_applies_cleanup() -> None:
     assert nd.text == "a b\n\nc"
 
 
+def test_carries_location_provenance_forward() -> None:
+    raw = RawExtraction(
+        source="a.xlsx",
+        content_type="t",
+        text="x",
+        signals={"fonts": ["Arial"]},
+        page=3,
+        sheet="Data",
+    )
+    nd = VietnameseNormalizer().normalize(raw, LoadOptions())
+    assert nd.page == 3
+    assert nd.sheet == "Data"
+
+
 def test_extract_stage_warnings_are_carried_forward() -> None:
     raw = RawExtraction(
         source="a",

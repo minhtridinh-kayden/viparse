@@ -110,6 +110,8 @@ class VietnameseNormalizer:
             content_type=raw.content_type,
             text=text,
             engine=raw.engine,
+            page=raw.page,  # carry the engine's location provenance through to metadata
+            sheet=raw.sheet,
             encoding_detected=encoding,
             encoding_confidence=confidence,
             warnings=warnings,

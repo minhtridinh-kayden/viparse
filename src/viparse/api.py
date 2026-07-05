@@ -15,6 +15,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Iterator
 
 from viparse.engines.docx import DocxEngine
+from viparse.engines.xlsx import XlsxEngine
 from viparse.model import Document
 from viparse.normalize.normalizer import VietnameseNormalizer
 from viparse.options import (
@@ -36,7 +37,7 @@ def _default_engines() -> list[Engine]:
     Each is a thin adapter whose heavy parse library is imported lazily at extraction
     time, so listing one here never pulls its dependency at import — ``core`` stays light.
     """
-    return [DocxEngine()]
+    return [DocxEngine(), XlsxEngine()]
 
 
 def _build_pipeline() -> Pipeline:

@@ -15,6 +15,7 @@ from collections.abc import Iterator
 from typing import Any
 
 from viparse.detect import CONTENT_TYPE_DOCX
+from viparse.engines._shared import blocks_to_text
 from viparse.errors import MissingDependency
 from viparse.model import RawExtraction
 from viparse.options import LoadOptions
@@ -65,7 +66,7 @@ class DocxEngine:
         return RawExtraction(
             source=str(source),
             content_type=CONTENT_TYPE_DOCX,
-            text=_blocks_to_text(blocks),
+            text=blocks_to_text(blocks),
             engine="docx",
             signals=signals,
         )
@@ -161,14 +162,3 @@ def _table_block(table: Any) -> tuple[list[list[str]], set[str]]:
             cells.append(cell.text)
         rows.append(cells)
     return rows, fonts
-
-
-def _blocks_to_text(blocks: list[dict[str, Any]]) -> str:
-    """Flatten ordered blocks into plain text (tables as tab-separated rows)."""
-    lines: list[str] = []
-    for block in blocks:
-        if block["type"] == "table":
-            lines.extend("\t".join(row) for row in block["rows"])
-        else:
-            lines.append(block["text"])
-    return "\n".join(lines)
