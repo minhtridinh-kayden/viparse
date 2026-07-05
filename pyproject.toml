@@ -12,9 +12,12 @@ authors = [{ name = "minhtridinh" }]
 keywords = ["vietnamese", "rag", "document", "parser", "tcvn3", "vni", "nfc"]
 dependencies = []
 
+# Heavy engines live behind extras so the default (`core`) install stays light —
+# `pip install viparse` pulls no parser/OCR binaries. `all` is the union of them.
 [project.optional-dependencies]
 office = ["python-docx>=1.1,<2"]
-all = ["viparse[office]"]
+ocr = ["pytesseract>=0.3,<0.4", "pdf2image>=1.17,<2", "pillow>=10,<12"]
+all = ["viparse[office,ocr]"]
 dev = ["ruff", "mypy", "pytest", "pytest-cov", "build"]
 
 [project.scripts]
