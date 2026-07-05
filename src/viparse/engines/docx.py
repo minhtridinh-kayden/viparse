@@ -38,6 +38,10 @@ class DocxEngine:
     """Extracts ordered text, run fonts, and block structure from a ``.docx`` file."""
 
     priority = DEFAULT_PRIORITY
+    #: Import name of the parse library this engine needs, and the extra that ships
+    #: it — read by ``viparse doctor`` to report availability (``None`` = stdlib-only).
+    dependency = "docx"
+    extra = "office"
 
     def supports(self, content_type: str) -> bool:
         return content_type == CONTENT_TYPE_DOCX
