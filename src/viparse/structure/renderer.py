@@ -17,6 +17,7 @@ import json
 from typing import Any
 
 from viparse.model import (
+    SCHEMA_VERSION,
     Block,
     Document,
     DocumentMetadata,
@@ -26,9 +27,6 @@ from viparse.model import (
     Table,
 )
 from viparse.options import DEFAULT_OUTPUT_FORMAT, OutputFormat
-
-SCHEMA_VERSION = "1.0"
-"""Version of the JSON block/metadata schema, so downstream consumers can pin it."""
 
 _MAX_HEADING_LEVEL = 6  # Markdown/HTML have no heading deeper than <h6>.
 

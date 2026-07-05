@@ -69,6 +69,18 @@ def test_markdown_of_empty_document_is_empty() -> None:
     assert DocumentRenderer().render(_doc(text="", blocks=[]), "markdown").text == ""
 
 
+def test_schema_version_is_a_single_exported_contract() -> None:
+    import viparse
+    from viparse.model import SCHEMA_VERSION as model_version
+
+    # One source of truth, re-exported publicly and stamped into the JSON payload.
+    assert viparse.SCHEMA_VERSION == model_version == SCHEMA_VERSION
+    payload = json.loads(
+        DocumentRenderer().render(_doc(text="x", blocks=[Paragraph("x")]), "json").text
+    )
+    assert payload["schema_version"] == viparse.SCHEMA_VERSION
+
+
 def test_json_has_versioned_schema_and_blocks() -> None:
     doc = _doc(
         text="Title",

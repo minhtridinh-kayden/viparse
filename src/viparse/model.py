@@ -15,6 +15,15 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+SCHEMA_VERSION = "1.0"
+"""Version of viparse's stable output contract — the :class:`DocumentMetadata` fields
+and the ``json`` renderer's block/metadata payload (SPEC-4 E4.3).
+
+Downstream consumers pin this to depend on the shape stably; it is bumped only on a
+breaking change. The chunk-level fields (``section``, ``chunk_index``, ``char_span``)
+arrive with chunking (SPEC-4 E4.2, M2) and will be an additive, non-breaking change.
+"""
+
 
 @dataclass(frozen=True, slots=True)
 class Heading:
@@ -48,11 +57,21 @@ Block = Heading | Paragraph | Table
 class DocumentMetadata:
     """Provenance and detection metadata attached to a :class:`Document`.
 
-    ``encoding_detected``/``encoding_confidence`` record the outcome of the
-    Vietnamese normalization layer; ``engine`` names the adapter that extracted
-    the text. ``warnings`` collects non-fatal issues (e.g. a page that failed to
-    extract under lenient mode); ``extra`` holds engine- or format-specific
-    fields without widening this schema.
+    This is the document-level half of viparse's standardized, versioned metadata
+    schema (SPEC-4 E4.3, versioned by :data:`SCHEMA_VERSION`):
+
+    - ``source`` / ``content_type`` — where the document came from and its detected type;
+    - ``page`` / ``sheet`` — location within a paginated or multi-sheet source;
+    - ``lang`` — detected language;
+    - ``encoding_detected`` / ``encoding_confidence`` — the Vietnamese normalization
+      layer's outcome (the moat);
+    - ``engine`` — the adapter that extracted the text;
+    - ``warnings`` — non-fatal issues (e.g. a page that failed under lenient mode);
+    - ``extra`` — an escape hatch for engine/format-specific fields that must not
+      widen the stable schema.
+
+    The chunk-level fields (``section``, ``chunk_index``, ``char_span``) live on each
+    :class:`Chunk`'s ``metadata`` and are populated by the chunker (SPEC-4 E4.2, M2).
     """
 
     source: str
