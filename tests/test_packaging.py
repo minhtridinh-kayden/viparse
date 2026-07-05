@@ -10,7 +10,8 @@ import tomllib
 from functools import lru_cache
 from pathlib import Path
 
-_PYPROJECT = Path(__file__).resolve().parents[1] / "pyproject.toml"
+_ROOT = Path(__file__).resolve().parents[1]
+_PYPROJECT = _ROOT / "pyproject.toml"
 
 
 @lru_cache(maxsize=1)
@@ -18,6 +19,16 @@ def _project() -> dict[str, object]:
     with _PYPROJECT.open("rb") as fh:
         project: dict[str, object] = tomllib.load(fh)["project"]
     return project
+
+
+def test_release_docs_exist() -> None:
+    # A releasable project ships a changelog and a security policy.
+    assert (_ROOT / "CHANGELOG.md").is_file()
+    assert (_ROOT / "SECURITY.md").is_file()
+
+
+def test_dev_extra_includes_sbom_tool() -> None:
+    assert any("cyclonedx" in dep for dep in _project()["optional-dependencies"]["dev"])
 
 
 def test_core_install_has_no_runtime_dependencies() -> None:

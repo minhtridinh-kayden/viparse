@@ -22,3 +22,4 @@ coverage.xml
 .idea/
 .vscode/
 uv.lock
+sbom.json
