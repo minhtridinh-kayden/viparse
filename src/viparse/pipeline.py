@@ -17,7 +17,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field, replace
 
 from viparse.detect import DetectedFormat, detect_format
-from viparse.errors import EngineUnavailable, ExtractionError, ViparseError
+from viparse.errors import EngineUnavailable, ExtractionError, MissingDependency, ViparseError
 from viparse.model import Document, DocumentMetadata, RawExtraction
 from viparse.observability import MetricsHook, PipelineMetrics, logger
 from viparse.options import LoadOptions
@@ -117,7 +117,7 @@ class Pipeline:
         trace.content_type = detected.content_type
         opts = self._apply_scan_hint(opts, detected)
         try:
-            chain = self._registry.engines_for(detected.content_type)
+            chain = self._select_by_ocr(self._registry.engines_for(detected.content_type), opts.ocr)
             if not chain:
                 raise EngineUnavailable(
                     f"no engine registered for content type {detected.content_type!r}"
@@ -160,6 +160,19 @@ class Pipeline:
                 logger.exception("viparse metrics hook raised")
 
     @staticmethod
+    def _select_by_ocr(chain: list[Engine], ocr: bool | None) -> list[Engine]:
+        """Order an engine chain around OCR intent.
+
+        OCR engines (those marking ``ocr = True``) are heavy and only meaningful for
+        scanned input, so they run **only when explicitly requested** (``options.ocr``
+        is ``True``), where they are tried first. Otherwise they are excluded and the
+        plain engines handle the document.
+        """
+        ocr_engines = [engine for engine in chain if getattr(engine, "ocr", False)]
+        plain = [engine for engine in chain if not getattr(engine, "ocr", False)]
+        return [*ocr_engines, *plain] if ocr is True else plain
+
+    @staticmethod
     def _apply_scan_hint(options: LoadOptions, detected: DetectedFormat) -> LoadOptions:
         """Resolve an unset ``ocr`` hook from the router's scanned-PDF hint."""
         if options.ocr is None and detected.is_scanned_pdf is not None:
@@ -170,17 +183,22 @@ class Pipeline:
     def _extract_with_fallback(
         chain: list[Engine], source: Source, options: LoadOptions
     ) -> RawExtraction:
-        """Try each engine in priority order, falling back on failure.
+        """Try each engine in order, falling back when one fails to *parse* the source.
 
-        Returns the first successful extraction. If every engine fails, raises
-        :class:`~viparse.errors.ExtractionError` whose message names each engine's
-        failure and whose ``__cause__`` is the primary (highest-priority) engine's
-        exception — so no diagnostic is lost.
+        Returns the first successful extraction. A :class:`~viparse.errors.MissingDependency`
+        propagates immediately and is never masked: it means the selected engine's
+        dependency (e.g. Tesseract for OCR) is not installed — an actionable infrastructure
+        error, not "this engine can't handle this file", so falling back to another engine
+        would silently hide it. If every engine fails to parse, raises
+        :class:`~viparse.errors.ExtractionError` naming each failure, with the first
+        engine's exception as ``__cause__``.
         """
         failures: list[Exception] = []
         for engine in chain:
             try:
                 return engine.extract(source, options)
+            except MissingDependency:
+                raise  # a missing dependency is actionable and must never be masked
             except Exception as exc:  # noqa: BLE001 — fall back to the next engine
                 failures.append(exc)
         detail = "; ".join(f"{type(exc).__name__}: {exc}" for exc in failures)

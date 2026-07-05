@@ -72,8 +72,14 @@ class VietnameseNormalizer:
         warnings: list[str] = list(raw.warnings)  # carry the extract stage's warnings forwa
 
         override = options.encoding
+        encoding: str | None
         if override and override != _AUTO_ENCODING:
-            encoding: str | None = override
+            encoding = override
+            confidence = _OVERRIDE_CONFIDENCE
+        elif raw.signals.get("native_unicode"):
+            # The engine already produced Unicode (e.g. OCR): there is no legacy encoding
+            # to detect, so skip detection and its low-confidence warning entirely.
+            encoding = None
             confidence = _OVERRIDE_CONFIDENCE
         else:
             detection = detect_encoding(fonts)

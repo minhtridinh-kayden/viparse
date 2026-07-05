@@ -8,7 +8,12 @@ from pathlib import Path
 import pytest
 
 from viparse.detect import CONTENT_TYPE_DOCX
-from viparse.errors import EngineUnavailable, ExtractionError, UnsupportedFormat
+from viparse.errors import (
+    EngineUnavailable,
+    ExtractionError,
+    MissingDependency,
+    UnsupportedFormat,
+)
 from viparse.model import Document, DocumentMetadata, NormalizedDoc, RawExtraction
 from viparse.options import LoadOptions, OutputFormat
 from viparse.pipeline import Pipeline
@@ -40,6 +45,16 @@ class FailingEngine:
 
     def extract(self, source: Source, options: LoadOptions) -> RawExtraction:
         raise RuntimeError("boom")
+
+
+class DependencyMissingEngine:
+    priority = 200  # tried before RecordingEngine
+
+    def supports(self, content_type: str) -> bool:
+        return True
+
+    def extract(self, source: Source, options: LoadOptions) -> RawExtraction:
+        raise MissingDependency("install the thing")
 
 
 class RecordingNormalizer:
@@ -152,6 +167,19 @@ def test_run_falls_back_to_next_engine_on_failure(tmp_path: Path) -> None:
     assert engine.seen_options is not None
 
 
+def test_missing_dependency_is_never_masked_by_fallback(tmp_path: Path) -> None:
+    # A missing dependency is actionable infrastructure ("install X"), not a parse
+    # failure, so it propagates instead of silently falling back to another engine.
+    engine = RecordingEngine()
+    reg = EngineRegistry()
+    reg.register(engine)  # priority 100 — would "succeed" if reached
+    reg.register(DependencyMissingEngine())  # priority 200 → tried first
+    pipeline = Pipeline(reg, RecordingNormalizer(), RecordingRenderer())
+    with pytest.raises(MissingDependency):
+        pipeline.run(_docx(tmp_path / "a.docx"))
+    assert engine.seen_options is None  # the fallback engine was never reached
+
+
 def test_strict_mode_raises_extraction_error_when_all_engines_fail(tmp_path: Path) -> None:
     reg = EngineRegistry()
     reg.register(FailingEngine())
@@ -203,3 +231,18 @@ def test_run_batch_returns_one_document_per_source(tmp_path: Path) -> None:
     docs = pipeline.run_batch([_docx(tmp_path / "a.docx"), _docx(tmp_path / "b.docx")])
     assert len(docs) == 2
     assert all(isinstance(d, Document) for d in docs)
+
+
+def test_select_by_ocr_filters_and_orders() -> None:
+    class _Plain:
+        pass
+
+    class _Ocr:
+        ocr = True
+
+    plain, ocr = _Plain(), _Ocr()
+    # The stub engines are duck-typed, not real Engine implementations, so mypy needs
+    # the list-item ignores; forced OCR tries OCR engines first, else they are excluded.
+    assert Pipeline._select_by_ocr([plain, ocr], True) == [ocr, plain]  # type: ignore[list-item]
+    assert Pipeline._select_by_ocr([plain, ocr], None) == [plain]  # type: ignore[list-item]
+    assert Pipeline._select_by_ocr([plain, ocr], False) == [plain]  # type: ignore[list-item]
