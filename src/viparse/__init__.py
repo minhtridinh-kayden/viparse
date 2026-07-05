@@ -14,6 +14,7 @@ from viparse.errors import (
     EngineUnavailable,
     ExtractionError,
     MissingDependency,
+    UnsafeInput,
     UnsupportedFormat,
     ViparseError,
 )
@@ -80,6 +81,7 @@ __all__ = [
     "SCHEMA_VERSION",
     "Source",
     "Table",
+    "UnsafeInput",
     "UnsupportedFormat",
     "VietnameseNormalizer",
     "ViparseError",

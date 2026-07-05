@@ -23,6 +23,7 @@ from viparse.observability import MetricsHook, PipelineMetrics, logger
 from viparse.options import LoadOptions
 from viparse.protocols import Engine, Normalizer, Renderer, Source
 from viparse.registry import EngineRegistry
+from viparse.safety import check_file_size, check_zip_bomb
 
 # Content type used for a lenient result when detection itself failed.
 _UNKNOWN_CONTENT_TYPE = "application/octet-stream"
@@ -107,6 +108,7 @@ class Pipeline:
         # is timed — building the lenient fallback is not part of "detect".
         try:
             with _timed(trace.layer_seconds, "detect"):
+                check_file_size(source, opts.max_bytes)  # reject a hostile oversized file early
                 detected = detect_format(source)
         except ViparseError as exc:
             if opts.strict:
@@ -117,6 +119,7 @@ class Pipeline:
         trace.content_type = detected.content_type
         opts = self._apply_scan_hint(opts, detected)
         try:
+            check_zip_bomb(source, detected.content_type)  # reject a decompression bomb
             chain = self._select_by_ocr(self._registry.engines_for(detected.content_type), opts.ocr)
             if not chain:
                 raise EngineUnavailable(
@@ -165,12 +168,15 @@ class Pipeline:
 
         OCR engines (those marking ``ocr = True``) are heavy and only meaningful for
         scanned input, so they run **only when explicitly requested** (``options.ocr``
-        is ``True``), where they are tried first. Otherwise they are excluded and the
-        plain engines handle the document.
+        is ``True``). When requested, OCR engines are used *exclusively* if any exist for
+        the format — never with a plain-engine fallback, so an OCR failure (timeout,
+        missing binary) surfaces to the caller instead of silently degrading to a
+        text-less digital result. For a format with no OCR engine, the flag is moot and
+        the plain engines handle it. When not requested, OCR engines are excluded.
         """
         ocr_engines = [engine for engine in chain if getattr(engine, "ocr", False)]
         plain = [engine for engine in chain if not getattr(engine, "ocr", False)]
-        return [*ocr_engines, *plain] if ocr is True else plain
+        return (ocr_engines or plain) if ocr is True else plain
 
     @staticmethod
     def _apply_scan_hint(options: LoadOptions, detected: DetectedFormat) -> LoadOptions:

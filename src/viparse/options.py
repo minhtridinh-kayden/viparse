@@ -23,6 +23,9 @@ NormalizeForm = Literal["NFC", "NFD", "NFKC", "NFKD"]
 DEFAULT_NORMALIZE_FORM: NormalizeForm = "NFC"
 """The single source of truth for the default normalization form (the moat's golden rule)."""
 
+DEFAULT_MAX_BYTES = 100 * 1024 * 1024
+"""Default maximum input file size (100 MiB); a hostile oversized file is rejected early."""
+
 
 @dataclass(frozen=True, slots=True)
 class LoadOptions:
@@ -39,6 +42,8 @@ class LoadOptions:
     - ``strict``: when ``True`` (default), extraction failures raise; when
       ``False`` (lenient), the pipeline returns a best-effort result with the
       failure recorded as a warning in the document metadata.
+    - ``max_bytes``: reject an input file larger than this (untrusted-input safety);
+      default 100 MiB.
     """
 
     fmt: OutputFormat = DEFAULT_OUTPUT_FORMAT
@@ -46,3 +51,4 @@ class LoadOptions:
     ocr: bool | None = None
     normalize_form: NormalizeForm = DEFAULT_NORMALIZE_FORM
     strict: bool = True
+    max_bytes: int = DEFAULT_MAX_BYTES
