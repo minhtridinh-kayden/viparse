@@ -14,6 +14,7 @@ from viparse.errors import (
     ViparseError,
 )
 from viparse.model import (
+    SCHEMA_VERSION,
     Block,
     Chunk,
     Document,
@@ -69,6 +70,7 @@ __all__ = [
     "PipelineMetrics",
     "RawExtraction",
     "Renderer",
+    "SCHEMA_VERSION",
     "Source",
     "Table",
     "UnsupportedFormat",
