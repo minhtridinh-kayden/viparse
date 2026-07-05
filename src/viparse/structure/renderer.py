@@ -23,8 +23,8 @@ from viparse.model import (
     DocumentMetadata,
     Heading,
     NormalizedDoc,
-    Paragraph,
     Table,
+    blocks_of,
 )
 from viparse.options import DEFAULT_OUTPUT_FORMAT, OutputFormat
 
@@ -77,7 +77,7 @@ def _render_text(doc: NormalizedDoc) -> str:
 def _render_markdown(doc: NormalizedDoc) -> str:
     """Render blocks to markdown, preserving headings and tables (T4.1.2)."""
     parts: list[str] = []
-    for block in _blocks_of(doc):
+    for block in blocks_of(doc):
         if isinstance(block, Heading):
             parts.append(f"{'#' * _clamp_level(block.level)} {block.text}")
         elif isinstance(block, Table):
@@ -115,7 +115,7 @@ def _render_json(doc: NormalizedDoc) -> str:
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         **_provenance(doc),
-        "blocks": [_block_to_dict(block) for block in _blocks_of(doc)],
+        "blocks": [_block_to_dict(block) for block in blocks_of(doc)],
     }
     # ensure_ascii=False keeps Vietnamese characters literal (and NFC) in the output.
     return json.dumps(payload, ensure_ascii=False, indent=2)
@@ -128,14 +128,3 @@ def _block_to_dict(block: Block) -> dict[str, Any]:
     if isinstance(block, Table):
         return {"type": "table", "rows": block.rows}
     return {"type": "paragraph", "text": block.text}
-
-
-def _blocks_of(doc: NormalizedDoc) -> list[Block]:
-    """Return the document's blocks, synthesizing a single paragraph from flat text.
-
-    A block-less document (an engine that only emits text) still renders as one
-    paragraph so markdown/JSON never come back empty when there is text.
-    """
-    if doc.blocks:
-        return doc.blocks
-    return [Paragraph(text=doc.text)] if doc.text else []

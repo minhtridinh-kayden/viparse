@@ -16,6 +16,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field, replace
 
+from viparse.chunk import chunk_document
 from viparse.detect import DetectedFormat, detect_format
 from viparse.errors import EngineUnavailable, ExtractionError, MissingDependency, ViparseError
 from viparse.model import Document, DocumentMetadata, RawExtraction
@@ -133,6 +134,9 @@ class Pipeline:
             trace.encoding_detected = normalized.encoding_detected
             with _timed(trace.layer_seconds, "render"):
                 document = self._renderer.render(normalized, opts.fmt)
+            if opts.chunk is not None:
+                with _timed(trace.layer_seconds, "chunk"):
+                    document = replace(document, chunks=chunk_document(normalized, opts.chunk))
             trace.ok = True
             return document
         except ViparseError as exc:

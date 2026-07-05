@@ -20,8 +20,9 @@ SCHEMA_VERSION = "1.0"
 and the ``json`` renderer's block/metadata payload (SPEC-4 E4.3).
 
 Downstream consumers pin this to depend on the shape stably; it is bumped only on a
-breaking change. The chunk-level fields (``section``, ``chunk_index``, ``char_span``)
-arrive with chunking (SPEC-4 E4.2, M2) and will be an additive, non-breaking change.
+breaking change. The chunk-level metadata fields (``section``, ``page``, ``sheet``,
+plus the ``Chunk.index`` position) arrive with chunking (SPEC-4 E4.2) as an additive,
+non-breaking change.
 """
 
 
@@ -70,8 +71,9 @@ class DocumentMetadata:
     - ``extra`` — an escape hatch for engine/format-specific fields that must not
       widen the stable schema.
 
-    The chunk-level fields (``section``, ``chunk_index``, ``char_span``) live on each
-    :class:`Chunk`'s ``metadata`` and are populated by the chunker (SPEC-4 E4.2, M2).
+    The chunk-level metadata fields (``section``, ``page``, ``sheet``) live on each
+    :class:`Chunk`'s ``metadata`` and are populated by the chunker (SPEC-4 E4.2); a
+    chunk's position is its ``Chunk.index``.
     """
 
     source: str
@@ -109,8 +111,8 @@ class Document:
     """The parsed result for one source document.
 
     ``text`` is the full normalized (Unicode NFC) text; ``chunks`` is an
-    optional retrieval-oriented split produced by the renderer. Field names
-    mirror LangChain/LlamaIndex document shapes so conversion is trivial.
+    optional retrieval-oriented split, populated only when chunking is requested.
+    Field names mirror LangChain/LlamaIndex document shapes so conversion is trivial.
     """
 
     text: str
@@ -161,3 +163,16 @@ class NormalizedDoc:
     encoding_confidence: float | None = None
     warnings: list[str] = field(default_factory=list, hash=False)
     blocks: list[Block] = field(default_factory=list, hash=False)
+
+
+def blocks_of(doc: NormalizedDoc) -> list[Block]:
+    """The document's structural blocks, synthesizing one paragraph from flat text.
+
+    A block-less document (an engine that only emits text) still yields one paragraph so
+    downstream consumers (renderer, chunker) never see an empty structure when there is
+    text. This is the single source of that fallback rule — both the renderer and the
+    chunker derive their block view from here so they can never disagree.
+    """
+    if doc.blocks:
+        return doc.blocks
+    return [Paragraph(text=doc.text)] if doc.text else []

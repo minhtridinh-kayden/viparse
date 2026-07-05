@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from viparse.api import load, load_batch
 from viparse.cache import Cache, DiskCache, MemoryCache
+from viparse.chunk import ChunkOptions, chunk_document
 from viparse.detect import DetectedFormat, detect_format
 from viparse.engines.docx import DocxEngine
 from viparse.engines.legacy import LegacyOfficeEngine
@@ -52,6 +53,8 @@ __all__ = [
     "Block",
     "Cache",
     "Chunk",
+    "ChunkOptions",
+    "chunk_document",
     "DetectedFormat",
     "DiskCache",
     "MemoryCache",

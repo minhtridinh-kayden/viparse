@@ -9,8 +9,11 @@ All notable changes to viparse are documented here. The format is based on
 ### Added
 
 - **Public API** — `viparse.load(source, *, output, encoding, ocr, normalize, max_bytes,
-  cache)` and lazy `viparse.load_batch(...)`, returning Unicode-**NFC** `Document`s as
+  cache, chunk)` and lazy `viparse.load_batch(...)`, returning Unicode-**NFC** `Document`s as
   markdown / text / json.
+- **RAG chunking** — opt-in `chunk=ChunkOptions(max_tokens, overlap_tokens)` splits a document
+  into retrieval-sized, section-aware `Chunk`s (never splitting a table row) with per-chunk
+  `section` / `page` / `sheet` metadata and an ordinal `index`.
 - **CLI** — `viparse <files> -o md|text|json` (globs, directories, `--out`,
   `--encoding`/`--ocr`/`--normalize`) and `viparse doctor` (engine + binary availability).
 - **Extraction engines** — DOCX, XLSX, digital PDF, scanned PDF via OCR (`viparse[ocr]`),

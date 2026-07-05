@@ -11,6 +11,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
+from viparse.chunk import ChunkOptions
+
 OutputFormat = Literal["text", "markdown", "json"]
 """Supported renderer output formats."""
 
@@ -44,6 +46,9 @@ class LoadOptions:
       failure recorded as a warning in the document metadata.
     - ``max_bytes``: reject an input file larger than this (untrusted-input safety);
       default 100 MiB.
+    - ``chunk``: when set, split the result into retrieval-sized
+      :class:`~viparse.model.Chunk`s (populating ``Document.chunks``); ``None`` (default)
+      leaves the document unchunked.
     """
 
     fmt: OutputFormat = DEFAULT_OUTPUT_FORMAT
@@ -52,3 +57,4 @@ class LoadOptions:
     normalize_form: NormalizeForm = DEFAULT_NORMALIZE_FORM
     strict: bool = True
     max_bytes: int = DEFAULT_MAX_BYTES
+    chunk: ChunkOptions | None = None
