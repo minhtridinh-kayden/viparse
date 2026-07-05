@@ -98,12 +98,13 @@ def cache_key(source: Source, options: LoadOptions) -> str:
     source (its ``metadata.source`` stays correct — two byte-identical files never share an
     entry). The options are fingerprinted with :func:`repr` of a tuple so ``None`` and the
     string ``"None"`` (and any field containing a delimiter) can never collide. ``max_bytes``
-    and ``strict`` are omitted because they do not change the parsed output.
+    and ``strict`` are omitted because they do not change the parsed output; ``chunk`` is
+    included because it changes the document (its ``chunks``), and its frozen ``repr`` is stable.
     """
     digest = hashlib.sha256()
     with Path(source).open("rb") as fh:
-        for chunk in iter(lambda: fh.read(_HASH_CHUNK), b""):
-            digest.update(chunk)
+        for block in iter(lambda: fh.read(_HASH_CHUNK), b""):
+            digest.update(block)
     fingerprint = repr(
         (
             str(source),
@@ -112,6 +113,7 @@ def cache_key(source: Source, options: LoadOptions) -> str:
             options.encoding,
             options.ocr,
             options.normalize_form,
+            options.chunk,
         )
     )
     digest.update(fingerprint.encode("utf-8"))

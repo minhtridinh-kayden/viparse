@@ -34,7 +34,9 @@ integration loaders.
 
 ### E4.3 — Metadata schema
 - **T4.3.1** Standardize schema: `source, content_type, page, sheet, section, lang,
-  encoding_detected, encoding_confidence, engine, chunk_index, char_span`.
+  encoding_detected, encoding_confidence, engine`, plus each chunk's ordinal `index`.
+  (A source `char_span` was considered but deferred: it cannot reliably index the returned
+  `Document.text`, which varies by output format — see E4.2.)
 - **T4.3.2** Schema versioning (so downstream can depend on it stably).
 
 ### E4.4 — Integrations

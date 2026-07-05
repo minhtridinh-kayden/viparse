@@ -17,6 +17,7 @@ from collections.abc import Iterable, Iterator
 from concurrent.futures import Future, ThreadPoolExecutor
 
 from viparse.cache import Cache, cache_key
+from viparse.chunk import ChunkOptions
 from viparse.engines.docx import DocxEngine
 from viparse.engines.legacy import LegacyOfficeEngine
 from viparse.engines.ocr import OcrEngine
@@ -66,10 +67,16 @@ def _options(
     ocr: bool | None,
     normalize: NormalizeForm,
     max_bytes: int,
+    chunk: ChunkOptions | None,
 ) -> LoadOptions:
     """Map the public keyword parameters onto the internal :class:`LoadOptions`."""
     return LoadOptions(
-        fmt=output, encoding=encoding, ocr=ocr, normalize_form=normalize, max_bytes=max_bytes
+        fmt=output,
+        encoding=encoding,
+        ocr=ocr,
+        normalize_form=normalize,
+        max_bytes=max_bytes,
+        chunk=chunk,
     )
 
 
@@ -82,6 +89,7 @@ def load(
     normalize: NormalizeForm = DEFAULT_NORMALIZE_FORM,
     max_bytes: int = DEFAULT_MAX_BYTES,
     cache: Cache | None = None,
+    chunk: ChunkOptions | None = None,
 ) -> list[Document]:
     """Parse ``source`` into a list of Unicode-**NFC** :class:`Document` objects.
 
@@ -94,8 +102,10 @@ def load(
     :param max_bytes: reject an input larger than this many bytes (default 100 MiB).
     :param cache: optional content-hash :class:`~viparse.cache.Cache`; a cache hit skips
         re-parsing an unchanged file (SPEC-7 E7.3).
+    :param chunk: optional :class:`~viparse.chunk.ChunkOptions`; when given, the returned
+        Document's ``chunks`` are populated with retrieval-sized pieces (SPEC-4 E4.2).
     """
-    options = _options(output, encoding, ocr, normalize, max_bytes)
+    options = _options(output, encoding, ocr, normalize, max_bytes, chunk)
     return [_load_one(_build_pipeline(), source, options, cache)]
 
 
@@ -156,6 +166,7 @@ def load_batch(
     max_bytes: int = DEFAULT_MAX_BYTES,
     cache: Cache | None = None,
     workers: int | None = None,
+    chunk: ChunkOptions | None = None,
 ) -> Iterator[list[Document]]:
     """Lazily load each source, yielding its result list **in input order**.
 
@@ -169,8 +180,11 @@ def load_batch(
     ``workers`` sources are ever in flight at once (backpressure), and output order still
     matches the input. ``None``/1 runs sequentially. Abandoning the iterator early waits for
     the (at most ``workers``) in-flight parses to finish before the pool shuts down.
+
+    ``chunk`` behaves as in :func:`load`: when set, each result Document's ``chunks`` are
+    populated with retrieval-sized pieces.
     """
-    options = _options(output, encoding, ocr, normalize, max_bytes)
+    options = _options(output, encoding, ocr, normalize, max_bytes, chunk)
     pipeline = _build_pipeline()
     if workers is None or workers <= 1:
         for source in sources:
