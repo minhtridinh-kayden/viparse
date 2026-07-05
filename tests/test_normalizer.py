@@ -104,6 +104,21 @@ def test_auto_encoding_still_prefers_a_font_signal() -> None:
     assert nd.encoding_detected is None
 
 
+def test_native_unicode_signal_skips_detection_and_warning() -> None:
+    # An engine (e.g. OCR) that already produced Unicode marks it, so the normalizer
+    # neither detects an encoding nor emits a spurious low-confidence warning.
+    raw = RawExtraction(
+        source="scan.pdf",
+        content_type="application/pdf",
+        text="Tiếng Việt",
+        signals={"fonts": [], "native_unicode": True},
+    )
+    nd = VietnameseNormalizer().normalize(raw, LoadOptions())
+    assert nd.encoding_detected is None
+    assert nd.text == "Tiếng Việt"
+    assert nd.warnings == []
+
+
 def test_mixed_encoding_warns() -> None:
     nd = VietnameseNormalizer().normalize(_raw("µ", [".VnTime", "VNI-Times"]), LoadOptions())
     assert any("multiple legacy encodings" in w for w in nd.warnings)

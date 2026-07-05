@@ -45,10 +45,9 @@ python_version = "3.11"
 strict = true
 files = ["src"]
 
-# openpyxl and pdfplumber ship no type stubs (unlike python-docx); the adapters
-# treat them as Any.
+# These libraries ship no type stubs (unlike python-docx); the adapters treat them as Any.
 [[tool.mypy.overrides]]
-module = ["openpyxl.*", "pdfplumber.*"]
+module = ["openpyxl.*", "pdfplumber.*", "pytesseract.*", "pdf2image.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
