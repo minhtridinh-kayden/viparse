@@ -238,7 +238,13 @@ def test_no_blocks_leaves_blocks_empty() -> None:
     assert nd.blocks == []
 
 
-@pytest.mark.parametrize("char", list(_VIETNAMESE_ACCENTED))
+# Both cases: the moat must recompose upper- and lower-case Vietnamese letters alike.
+_VIETNAMESE_REPERTOIRE = sorted(
+    set(_VIETNAMESE_ACCENTED) | {ch.upper() for ch in _VIETNAMESE_ACCENTED}
+)
+
+
+@pytest.mark.parametrize("char", _VIETNAMESE_REPERTOIRE)
 def test_nfc_nfd_roundtrip_for_all_accented_vowels(char: str) -> None:
     """Feeding the NFD form of each Vietnamese vowel yields the NFC precomposed form."""
     nfd = unicodedata.normalize("NFD", char)
