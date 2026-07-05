@@ -12,7 +12,9 @@ without a signature change.
 
 from __future__ import annotations
 
+from collections import deque
 from collections.abc import Iterable, Iterator
+from concurrent.futures import Future, ThreadPoolExecutor
 
 from viparse.cache import Cache, cache_key
 from viparse.engines.docx import DocxEngine
@@ -20,7 +22,8 @@ from viparse.engines.legacy import LegacyOfficeEngine
 from viparse.engines.ocr import OcrEngine
 from viparse.engines.pdf import PdfEngine
 from viparse.engines.xlsx import XlsxEngine
-from viparse.model import Document
+from viparse.errors import ViparseError
+from viparse.model import Document, NormalizedDoc
 from viparse.normalize.normalizer import VietnameseNormalizer
 from viparse.options import (
     DEFAULT_MAX_BYTES,
@@ -34,6 +37,10 @@ from viparse.pipeline import Pipeline
 from viparse.protocols import Engine, Source
 from viparse.registry import EngineRegistry
 from viparse.structure import DocumentRenderer
+
+# Content type for a batch error Document whose real type was never determined (matches
+# the pipeline's own unknown-type sentinel).
+_UNKNOWN_CONTENT_TYPE = "application/octet-stream"
 
 
 def _default_engines() -> list[Engine]:
@@ -107,6 +114,38 @@ def _load_one(
     return document
 
 
+def _error_document(source: Source, error: Exception, fmt: OutputFormat) -> Document:
+    """A best-effort Document for a source that failed to load in a batch.
+
+    Rendered through the normal renderer so its ``text`` is valid for the requested format
+    (e.g. a parseable JSON payload under ``output="json"``, not an empty string), with the
+    failure in ``metadata.warnings`` and the unknown-content sentinel as the content type.
+    """
+    normalized = NormalizedDoc(
+        source=str(source),
+        content_type=_UNKNOWN_CONTENT_TYPE,
+        text="",
+        warnings=[f"failed to load: {error}"],
+    )
+    return DocumentRenderer().render(normalized, fmt)
+
+
+def _batch_load(
+    pipeline: Pipeline, source: Source, options: LoadOptions, cache: Cache | None
+) -> Document:
+    """Load one source for a batch, isolating a per-source *failure* into an error Document.
+
+    Only extraction/format failures (:class:`~viparse.errors.ViparseError`) and file-access
+    errors (:class:`OSError`) are isolated so one bad file can't sink the batch. Programming
+    bugs (``TypeError`` etc.) deliberately propagate — matching the pipeline's rule that
+    they must never be silently downgraded to a warning.
+    """
+    try:
+        return _load_one(pipeline, source, options, cache)
+    except (ViparseError, OSError) as error:
+        return _error_document(source, error, options.fmt)
+
+
 def load_batch(
     sources: Iterable[Source],
     *,
@@ -116,18 +155,54 @@ def load_batch(
     normalize: NormalizeForm = DEFAULT_NORMALIZE_FORM,
     max_bytes: int = DEFAULT_MAX_BYTES,
     cache: Cache | None = None,
+    workers: int | None = None,
 ) -> Iterator[list[Document]]:
-    """Lazily :func:`load` each source, yielding its result list in order.
+    """Lazily load each source, yielding its result list **in input order**.
 
-    A generator (not a materialized list) so it stays the extension point for the
-    parallel batch runner in S7 without changing this signature.
+    A generator (not a materialized list), so results stream out as they're ready and the
+    caller controls consumption. Unlike :func:`load`, a batch **isolates failures**: a
+    source that errors yields a best-effort Document recording the failure (its
+    ``metadata.warnings``) instead of sinking the whole batch (SPEC-7 T7.2.3).
 
-    This intentionally does not delegate to :meth:`Pipeline.run_batch`: that method is
-    eager and returns a flat ``list[Document]`` (one per source), whereas this yields
-    lazily and nests per source (reserving room for a source that fans out into several
-    documents). Both share the same per-source primitive, :meth:`Pipeline.run`.
+    ``workers`` (>1) parses up to that many sources concurrently on a thread pool —
+    extraction is largely IO / subprocess bound (LibreOffice, Tesseract, file reads). Only
+    ``workers`` sources are ever in flight at once (backpressure), and output order still
+    matches the input. ``None``/1 runs sequentially. Abandoning the iterator early waits for
+    the (at most ``workers``) in-flight parses to finish before the pool shuts down.
     """
     options = _options(output, encoding, ocr, normalize, max_bytes)
     pipeline = _build_pipeline()
-    for source in sources:
-        yield [_load_one(pipeline, source, options, cache)]
+    if workers is None or workers <= 1:
+        for source in sources:
+            yield [_batch_load(pipeline, source, options, cache)]
+        return
+    yield from _parallel_load_batch(pipeline, sources, options, cache, workers)
+
+
+def _parallel_load_batch(
+    pipeline: Pipeline,
+    sources: Iterable[Source],
+    options: LoadOptions,
+    cache: Cache | None,
+    workers: int,
+) -> Iterator[list[Document]]:
+    """Parse sources on a bounded thread pool, yielding results in input order."""
+    pending: deque[Future[Document]] = deque()
+    source_iter = iter(sources)
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+
+        def submit_next() -> bool:
+            try:
+                source = next(source_iter)
+            except StopIteration:
+                return False
+            pending.append(executor.submit(_batch_load, pipeline, source, options, cache))
+            return True
+
+        for _ in range(workers):  # prime the in-flight window
+            if not submit_next():
+                break
+        while pending:
+            document = pending.popleft().result()  # oldest first → input order
+            submit_next()  # keep the window full as each result drains
+            yield [document]

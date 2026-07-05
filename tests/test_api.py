@@ -98,3 +98,50 @@ def test_load_populates_cache_on_miss(tmp_path: Path) -> None:
     (doc,) = load(path, cache=cache)
     assert doc.text == "Tài liệu"
     assert cache.get(cache_key(path, LoadOptions())) is doc
+
+
+def test_load_batch_isolates_a_failing_source(tmp_path: Path) -> None:
+    good = _write_docx(tmp_path / "a.docx", "ok")
+    bad = tmp_path / "bad.txt"
+    bad.write_text("not a document", encoding="utf-8")
+    results = list(load_batch([good, bad], output="text"))
+    assert results[0][0].text == "ok"
+    assert results[1][0].text == ""  # the failure was isolated, not raised
+    assert results[1][0].metadata.warnings  # and recorded
+
+
+def test_load_batch_parallel_matches_sequential_order(tmp_path: Path) -> None:
+    paths = [_write_docx(tmp_path / f"{i}.docx", f"doc {i}") for i in range(6)]
+    sequential = [r[0].text for r in load_batch(paths, output="text")]
+    parallel = [r[0].text for r in load_batch(paths, output="text", workers=3)]
+    assert parallel == sequential == [f"doc {i}" for i in range(6)]
+
+
+def test_load_batch_parallel_isolates_failures(tmp_path: Path) -> None:
+    good = _write_docx(tmp_path / "a.docx", "ok")
+    bad = tmp_path / "bad.txt"
+    bad.write_text("x", encoding="utf-8")
+    # workers (3) > sources (2) exercises the priming break as well.
+    results = list(load_batch([good, bad], output="text", workers=3))
+    assert results[0][0].text == "ok"
+    assert results[1][0].metadata.warnings
+
+
+def test_load_batch_error_entry_is_valid_json(tmp_path: Path) -> None:
+    import json
+
+    good = _write_docx(tmp_path / "a.docx", "Xin chào")
+    bad = tmp_path / "bad.txt"
+    bad.write_text("x", encoding="utf-8")
+    results = list(load_batch([good, bad], output="json"))
+    json.loads(results[0][0].text)  # the good one
+    error = json.loads(results[1][0].text)  # must be valid JSON, not ""
+    assert error["blocks"] == []
+    assert any("failed to load" in w for w in error["warnings"])
+
+
+def test_load_batch_isolates_a_missing_file(tmp_path: Path) -> None:
+    good = _write_docx(tmp_path / "a.docx", "ok")
+    results = list(load_batch([good, tmp_path / "ghost.docx"], output="text"))
+    assert results[0][0].text == "ok"
+    assert results[1][0].metadata.warnings  # OSError isolated, not raised
