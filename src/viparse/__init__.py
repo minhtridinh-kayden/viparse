@@ -5,6 +5,7 @@ from __future__ import annotations
 from viparse.api import load, load_batch
 from viparse.detect import DetectedFormat, detect_format
 from viparse.engines.docx import DocxEngine
+from viparse.engines.legacy import LegacyOfficeEngine
 from viparse.engines.ocr import OcrEngine
 from viparse.engines.pdf import PdfEngine
 from viparse.engines.xlsx import XlsxEngine
@@ -59,6 +60,7 @@ __all__ = [
     "EngineUnavailable",
     "ExtractionError",
     "Heading",
+    "LegacyOfficeEngine",
     "LoadOptions",
     "load",
     "load_batch",

@@ -156,3 +156,30 @@ def test_doctor_flags_available_and_missing_dependencies(
     out = capsys.readouterr().out
     assert "_StdlibEngine (stdlib): available" in out
     assert "_MissingEngine (no_such_module_zzz): unavailable — pip install 'viparse[ghost]'" in out
+
+
+class _HasBinaryEngine:
+    dependency = None
+    extra = None
+    binary = "sh"  # present on the PATH of CI and dev machines
+
+
+class _MissingBinaryEngine:
+    dependency = None
+    extra = None
+    binary = "no_such_binary_zzz"
+
+
+def test_doctor_probes_external_binaries(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        cli, "_default_engines", lambda: [_HasBinaryEngine(), _MissingBinaryEngine()]
+    )
+    assert cli.main(["doctor"]) == 0
+    out = capsys.readouterr().out
+    assert "_HasBinaryEngine (stdlib): available" in out
+    assert (
+        "_MissingBinaryEngine (stdlib): unavailable — install the 'no_such_binary_zzz' binary"
+        in out
+    )

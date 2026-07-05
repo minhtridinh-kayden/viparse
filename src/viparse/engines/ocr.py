@@ -52,9 +52,10 @@ class OcrEngine:
     #: Below the digital PDF engine's baseline — though selection is really governed by
     #: :meth:`Pipeline._select_by_ocr`, which runs OCR only when ``options.ocr`` is True.
     priority = DEFAULT_PRIORITY - 10
-    #: Dependency + extra reported by ``viparse doctor``.
+    #: Dependency + extra + external binary reported by ``viparse doctor``.
     dependency = "pytesseract"
     extra = "ocr"
+    binary = "tesseract"
     #: Marks this as an OCR engine; the pipeline only selects it when ``options.ocr`` is True.
     ocr = True
 

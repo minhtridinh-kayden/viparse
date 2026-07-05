@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import glob as globlib
 import importlib.util
+import shutil
 import sys
 from collections.abc import Sequence
 from pathlib import Path
@@ -161,13 +162,23 @@ def _expand(pattern: str) -> list[Path]:
 
 
 def _doctor() -> str:
-    """Report the viparse version and which built-in engines are usable."""
+    """Report the viparse version and which built-in engines are usable.
+
+    An engine can require a pip ``dependency`` and/or an external ``binary`` (e.g.
+    LibreOffice's ``soffice``); both are probed so ``doctor`` never reports an engine
+    available when its non-pip binary is missing.
+    """
     lines = [f"viparse {__version__}", "", "Engines:"]
     for engine in _default_engines():
         name = type(engine).__name__
         dependency: str | None = getattr(engine, "dependency", None)
         extra: str | None = getattr(engine, "extra", None)
-        available = dependency is None or importlib.util.find_spec(dependency) is not None
-        status = "available" if available else f"unavailable — pip install 'viparse[{extra}]'"
+        binary: str | None = getattr(engine, "binary", None)
+        if dependency is not None and importlib.util.find_spec(dependency) is None:
+            status = f"unavailable — pip install 'viparse[{extra}]'"
+        elif binary is not None and shutil.which(binary) is None:
+            status = f"unavailable — install the {binary!r} binary"
+        else:
+            status = "available"
         lines.append(f"  {name} ({dependency or 'stdlib'}): {status}")
     return "\n".join(lines)
