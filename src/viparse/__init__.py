@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from viparse.api import load, load_batch
+from viparse.cache import Cache, DiskCache, MemoryCache
 from viparse.detect import DetectedFormat, detect_format
 from viparse.engines.docx import DocxEngine
 from viparse.engines.legacy import LegacyOfficeEngine
@@ -49,8 +50,11 @@ __version__ = "0.0.0"
 __all__ = [
     "DEFAULT_PRIORITY",
     "Block",
+    "Cache",
     "Chunk",
     "DetectedFormat",
+    "DiskCache",
+    "MemoryCache",
     "DocumentRenderer",
     "DocxEngine",
     "Document",

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Iterator
 
+from viparse.cache import Cache, cache_key
 from viparse.engines.docx import DocxEngine
 from viparse.engines.legacy import LegacyOfficeEngine
 from viparse.engines.ocr import OcrEngine
@@ -73,6 +74,7 @@ def load(
     ocr: bool | None = None,
     normalize: NormalizeForm = DEFAULT_NORMALIZE_FORM,
     max_bytes: int = DEFAULT_MAX_BYTES,
+    cache: Cache | None = None,
 ) -> list[Document]:
     """Parse ``source`` into a list of Unicode-**NFC** :class:`Document` objects.
 
@@ -83,9 +85,26 @@ def load(
     :param ocr: force OCR on/off; ``None`` (default) lets the router decide from the file.
     :param normalize: target Unicode normalization form (default ``"NFC"``).
     :param max_bytes: reject an input larger than this many bytes (default 100 MiB).
+    :param cache: optional content-hash :class:`~viparse.cache.Cache`; a cache hit skips
+        re-parsing an unchanged file (SPEC-7 E7.3).
     """
     options = _options(output, encoding, ocr, normalize, max_bytes)
-    return [_build_pipeline().run(source, options)]
+    return [_load_one(_build_pipeline(), source, options, cache)]
+
+
+def _load_one(
+    pipeline: Pipeline, source: Source, options: LoadOptions, cache: Cache | None
+) -> Document:
+    """Run one source through the pipeline, consulting/populating ``cache`` if given."""
+    if cache is None:
+        return pipeline.run(source, options)
+    key = cache_key(source, options)
+    cached = cache.get(key)
+    if cached is not None:
+        return cached
+    document = pipeline.run(source, options)
+    cache.set(key, document)
+    return document
 
 
 def load_batch(
@@ -96,6 +115,7 @@ def load_batch(
     ocr: bool | None = None,
     normalize: NormalizeForm = DEFAULT_NORMALIZE_FORM,
     max_bytes: int = DEFAULT_MAX_BYTES,
+    cache: Cache | None = None,
 ) -> Iterator[list[Document]]:
     """Lazily :func:`load` each source, yielding its result list in order.
 
@@ -110,4 +130,4 @@ def load_batch(
     options = _options(output, encoding, ocr, normalize, max_bytes)
     pipeline = _build_pipeline()
     for source in sources:
-        yield [pipeline.run(source, options)]
+        yield [_load_one(pipeline, source, options, cache)]
