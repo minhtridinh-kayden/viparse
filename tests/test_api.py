@@ -72,3 +72,29 @@ def test_load_rejects_oversized_input(tmp_path: Path) -> None:
     path = _write_docx(tmp_path / "a.docx", "Xin chào")
     with pytest.raises(UnsafeInput):
         load(path, max_bytes=10)
+
+
+def test_load_cache_hit_skips_parsing(tmp_path: Path) -> None:
+    from viparse import MemoryCache
+    from viparse.cache import cache_key
+    from viparse.model import Document, DocumentMetadata
+    from viparse.options import LoadOptions
+
+    path = _write_docx(tmp_path / "a.docx", "real content")
+    cache = MemoryCache()
+    sentinel = Document(text="FROM CACHE", metadata=DocumentMetadata(source="x", content_type="y"))
+    cache.set(cache_key(path, LoadOptions()), sentinel)  # LoadOptions() matches load() defaults
+    (doc,) = load(path, cache=cache)
+    assert doc.text == "FROM CACHE"  # returned the cache, never parsed "real content"
+
+
+def test_load_populates_cache_on_miss(tmp_path: Path) -> None:
+    from viparse import MemoryCache
+    from viparse.cache import cache_key
+    from viparse.options import LoadOptions
+
+    path = _write_docx(tmp_path / "a.docx", "Tài liệu")
+    cache = MemoryCache()
+    (doc,) = load(path, cache=cache)
+    assert doc.text == "Tài liệu"
+    assert cache.get(cache_key(path, LoadOptions())) is doc
