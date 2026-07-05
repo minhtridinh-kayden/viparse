@@ -29,8 +29,10 @@ class LoadOptions:
     """Per-call knobs for :func:`viparse.load` / the pipeline.
 
     - ``fmt``: renderer output format.
-    - ``encoding``: force a source/legacy encoding instead of auto-detecting it
-      (a hint honored by the normalizer).
+    - ``encoding``: force a legacy source encoding (e.g. ``"tcvn3"``) instead of relying
+      on the font signal. Pass ``"auto"`` to opt into content-based detection for a
+      source with no font signal (the caller asserts the text is legacy Vietnamese; it
+      is off by default because it can misclassify non-Vietnamese text).
     - ``ocr``: force OCR on (``True``) or off (``False``); ``None`` lets the
       engine decide from the scanned-PDF hint.
     - ``normalize_form``: target Unicode normalization form (default ``"NFC"``).

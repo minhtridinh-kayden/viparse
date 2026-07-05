@@ -24,13 +24,14 @@ from typing import Any
 
 from viparse.model import Block, Heading, NormalizedDoc, Paragraph, RawExtraction, Table
 from viparse.normalize.cleanup import clean_text
-from viparse.normalize.detector import detect_encoding
-from viparse.normalize.encodings import get_charmap
+from viparse.normalize.detector import detect_encoding, detect_encoding_by_content
+from viparse.normalize.encodings import CHARMAPS, get_charmap
 from viparse.normalize.tables import Charmap, convert
 from viparse.options import LoadOptions, NormalizeForm
 
 _OVERRIDE_CONFIDENCE = 1.0
 _LOW_CONFIDENCE = 0.75  # below this, surface a warning (SPEC-3 T3.6.2)
+_AUTO_ENCODING = "auto"  # opt-in sentinel for content-based detection (SPEC-3 E3.2)
 
 
 def _normalize_text(text: str, charmap: Charmap | None, form: NormalizeForm) -> str:
@@ -70,11 +71,22 @@ class VietnameseNormalizer:
         fonts = raw.signals.get("fonts") or []
         warnings: list[str] = list(raw.warnings)  # carry the extract stage's warnings forwa
 
-        if options.encoding:
-            encoding: str | None = options.encoding
+        override = options.encoding
+        if override and override != _AUTO_ENCODING:
+            encoding: str | None = override
             confidence = _OVERRIDE_CONFIDENCE
         else:
             detection = detect_encoding(fonts)
+            if override == _AUTO_ENCODING and detection.method == "assumed-unicode":
+                # Opt-in content detection (SPEC-3 E3.2): only when the caller passed
+                # encoding="auto" AND there is no font signal. It is NOT the default,
+                # because character-frequency scoring can misclassify non-Vietnamese text
+                # (e.g. Spanish "señor") as legacy and corrupt it — the moat's cardinal
+                # sin. The caller opting in asserts the source is legacy Vietnamese. The
+                # text is cleaned first so control-character noise cannot dilute the score.
+                detection = detect_encoding_by_content(
+                    clean_text(raw.text, options.normalize_form), CHARMAPS
+                )
             encoding = detection.encoding
             confidence = detection.confidence
             if detection.method == "font-signal-mixed":
