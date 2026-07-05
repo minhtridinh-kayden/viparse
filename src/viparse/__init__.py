@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from viparse.api import load, load_batch
 from viparse.detect import DetectedFormat, detect_format
 from viparse.engines.docx import DocxEngine
 from viparse.errors import (
@@ -55,6 +56,8 @@ __all__ = [
     "ExtractionError",
     "Heading",
     "LoadOptions",
+    "load",
+    "load_batch",
     "MetricsHook",
     "MissingDependency",
     "NormalizeForm",
