@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "source": "<fixture>",
+  "content_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "page": null,
+  "sheet": null,
+  "lang": null,
+  "encoding_detected": "tcvn3",
+  "encoding_confidence": 0.95,
+  "engine": "docx",
+  "warnings": [],
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "àáảãạ"
+    }
+  ]
+}

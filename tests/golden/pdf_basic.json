@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "source": "<fixture>",
+  "content_type": "application/pdf",
+  "page": 1,
+  "sheet": null,
+  "lang": null,
+  "encoding_detected": null,
+  "encoding_confidence": 0.9,
+  "engine": "pdf",
+  "warnings": [],
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Report body paragraph."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Name",
+          "Age"
+        ],
+        [
+          "An",
+          "30"
+        ]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0",
+  "source": "<fixture>",
+  "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "page": null,
+  "sheet": "Nhân viên",
+  "lang": null,
+  "encoding_detected": null,
+  "encoding_confidence": 0.9,
+  "engine": "xlsx",
+  "warnings": [],
+  "blocks": [
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "Nhân viên"
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Tên",
+          "Điểm"
+        ],
+        [
+          "Bình",
+          "9"
+        ]
+      ]
+    }
+  ]
+}

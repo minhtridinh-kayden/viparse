@@ -1,0 +1,38 @@
+{
+  "schema_version": "1.0",
+  "source": "<fixture>",
+  "content_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "page": null,
+  "sheet": null,
+  "lang": null,
+  "encoding_detected": null,
+  "encoding_confidence": 0.5,
+  "engine": "docx",
+  "warnings": [
+    "low encoding-detection confidence (0.50)"
+  ],
+  "blocks": [
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "Báo cáo"
+    },
+    {
+      "type": "paragraph",
+      "text": "Nội dung chính."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Tên",
+          "Tuổi"
+        ],
+        [
+          "An",
+          "30"
+        ]
+      ]
+    }
+  ]
+}
