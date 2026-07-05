@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from viparse.normalize.tables import Charmap
 from viparse.normalize.tcvn3 import TCVN3
+from viparse.normalize.viscii import VISCII
 from viparse.normalize.vni import VNI
 
 
@@ -21,7 +22,7 @@ def _register(*charmaps: Charmap) -> dict[str, Charmap]:
     return registry
 
 
-CHARMAPS: dict[str, Charmap] = _register(TCVN3, VNI)
+CHARMAPS: dict[str, Charmap] = _register(TCVN3, VNI, VISCII)
 
 
 def get_charmap(name: str) -> Charmap | None:

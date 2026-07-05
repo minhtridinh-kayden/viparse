@@ -1,0 +1,147 @@
+"""VISCII (TCVN 5712-1 / RFC 1456) → Unicode conversion table.
+
+Unlike the TCVN3/VNI *font* encodings, VISCII is a standardized 8-bit *charset*:
+it keeps the 95 printable ASCII characters, repurposes six rarely-used C0 control
+bytes, and fills 0x80–0xFF with precomposed Vietnamese letters. When VISCII bytes
+are read as Latin-1, each byte ``0xNN`` surfaces as ``chr(0xNN)``; this table maps
+every byte VISCII assigns *differently* from Latin-1 back to the correct Vietnamese
+letter (Unicode, then NFC).
+
+Provenance: the byte → Unicode mapping is transcribed from glibc's authoritative
+``localedata/charmaps/VISCII`` (equivalently RFC 1456 / the Unicode VISCII mapping),
+so — unlike the provisional font tables — these values are authoritative. Bytes that
+VISCII shares with Latin-1 (À Á Â Ã, È É Ê, à á â ã, …) are omitted and pass through
+unchanged.
+
+.. note::
+   This table keys on the **Latin-1** surface form (byte ``0xNN`` → ``chr(0xNN)``),
+   which is how the current engines surface bytes. Bytes ``0x80``–``0x9F`` are exactly
+   where Latin-1 and CP1252 diverge, so a future engine that decodes *raw* legacy bytes
+   must decode VISCII content as Latin-1 (or key conversion on the raw bytes): decoding
+   those bytes as CP1252 would surface them as punctuation/symbols this table cannot
+   match, silently passing the letter through. The unshared upper letters live in
+   ``0xA0``–``0xFF`` where the two codecs agree, so only ``0x80``–``0x9F`` is at risk.
+"""
+
+from __future__ import annotations
+
+from viparse.normalize.tables import Charmap, build_charmap
+
+ENCODING_NAME = "viscii"
+
+# (VISCII byte, Unicode code point) for every byte VISCII maps differently from
+# Latin-1: the six repurposed C0 controls, then 0x80–0xFF. Kept as integers so the
+# authoritative glibc data cannot be silently mistyped as look-alike glyphs.
+_BYTE_TO_CODEPOINT: list[tuple[int, int]] = [
+    # Six repurposed C0 control bytes.
+    (0x02, 0x1EB2),
+    (0x05, 0x1EB4),
+    (0x06, 0x1EAA),
+    (0x14, 0x1EF6),
+    (0x19, 0x1EF8),
+    (0x1E, 0x1EF4),
+    # 0x80–0xBF: every byte is a Vietnamese letter in VISCII.
+    (0x80, 0x1EA0),
+    (0x81, 0x1EAE),
+    (0x82, 0x1EB0),
+    (0x83, 0x1EB6),
+    (0x84, 0x1EA4),
+    (0x85, 0x1EA6),
+    (0x86, 0x1EA8),
+    (0x87, 0x1EAC),
+    (0x88, 0x1EBC),
+    (0x89, 0x1EB8),
+    (0x8A, 0x1EBE),
+    (0x8B, 0x1EC0),
+    (0x8C, 0x1EC2),
+    (0x8D, 0x1EC4),
+    (0x8E, 0x1EC6),
+    (0x8F, 0x1ED0),
+    (0x90, 0x1ED2),
+    (0x91, 0x1ED4),
+    (0x92, 0x1ED6),
+    (0x93, 0x1ED8),
+    (0x94, 0x1EE2),
+    (0x95, 0x1EDA),
+    (0x96, 0x1EDC),
+    (0x97, 0x1EDE),
+    (0x98, 0x1ECA),
+    (0x99, 0x1ECE),
+    (0x9A, 0x1ECC),
+    (0x9B, 0x1EC8),
+    (0x9C, 0x1EE6),
+    (0x9D, 0x0168),
+    (0x9E, 0x1EE4),
+    (0x9F, 0x1EF2),
+    (0xA0, 0x00D5),
+    (0xA1, 0x1EAF),
+    (0xA2, 0x1EB1),
+    (0xA3, 0x1EB7),
+    (0xA4, 0x1EA5),
+    (0xA5, 0x1EA7),
+    (0xA6, 0x1EA9),
+    (0xA7, 0x1EAD),
+    (0xA8, 0x1EBD),
+    (0xA9, 0x1EB9),
+    (0xAA, 0x1EBF),
+    (0xAB, 0x1EC1),
+    (0xAC, 0x1EC3),
+    (0xAD, 0x1EC5),
+    (0xAE, 0x1EC7),
+    (0xAF, 0x1ED1),
+    (0xB0, 0x1ED3),
+    (0xB1, 0x1ED5),
+    (0xB2, 0x1ED7),
+    (0xB3, 0x1EE0),
+    (0xB4, 0x01A0),
+    (0xB5, 0x1ED9),
+    (0xB6, 0x1EDD),
+    (0xB7, 0x1EDF),
+    (0xB8, 0x1ECB),
+    (0xB9, 0x1EF0),
+    (0xBA, 0x1EE8),
+    (0xBB, 0x1EEA),
+    (0xBC, 0x1EEC),
+    (0xBD, 0x01A1),
+    (0xBE, 0x1EDB),
+    (0xBF, 0x01AF),
+    # 0xC0–0xFF: only the bytes that differ from Latin-1 (the rest are shared
+    # Vietnamese-compatible accented letters that pass through unchanged).
+    (0xC4, 0x1EA2),
+    (0xC5, 0x0102),
+    (0xC6, 0x1EB3),
+    (0xC7, 0x1EB5),
+    (0xCB, 0x1EBA),
+    (0xCE, 0x0128),
+    (0xCF, 0x1EF3),
+    (0xD0, 0x0110),
+    (0xD1, 0x1EE9),
+    (0xD5, 0x1EA1),
+    (0xD6, 0x1EF7),
+    (0xD7, 0x1EEB),
+    (0xD8, 0x1EED),
+    (0xDB, 0x1EF9),
+    (0xDC, 0x1EF5),
+    (0xDE, 0x1EE1),
+    (0xDF, 0x01B0),
+    (0xE4, 0x1EA3),
+    (0xE5, 0x0103),
+    (0xE6, 0x1EEF),
+    (0xE7, 0x1EAB),
+    (0xEB, 0x1EBB),
+    (0xEE, 0x0129),
+    (0xEF, 0x1EC9),
+    (0xF0, 0x0111),
+    (0xF1, 0x1EF1),
+    (0xF6, 0x1ECF),
+    (0xF7, 0x1ECD),
+    (0xF8, 0x1EE5),
+    (0xFB, 0x0169),
+    (0xFC, 0x1EE7),
+    (0xFE, 0x1EE3),
+    (0xFF, 0x1EEE),
+]
+
+_ENTRIES = [(chr(byte), chr(codepoint)) for byte, codepoint in _BYTE_TO_CODEPOINT]
+
+VISCII: Charmap = build_charmap(ENCODING_NAME, _ENTRIES)
