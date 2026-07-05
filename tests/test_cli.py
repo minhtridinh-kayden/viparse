@@ -40,6 +40,46 @@ def test_encoding_override(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -
     assert capsys.readouterr().out == "àáảãạ\n"
 
 
+def test_output_from_env(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # An unset -o flag falls back to VIPARSE_OUTPUT (config layering reaches the CLI).
+    path = _write_docx(tmp_path / "a.docx", "Xin chào")
+    monkeypatch.setenv("VIPARSE_OUTPUT", "json")
+    assert cli.main([str(path)]) == 0
+    assert json.loads(capsys.readouterr().out)["blocks"] == [
+        {"type": "paragraph", "text": "Xin chào"}
+    ]
+
+
+def test_explicit_flag_overrides_env(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = _write_docx(tmp_path / "a.docx", "Xin chào")
+    monkeypatch.setenv("VIPARSE_OUTPUT", "json")
+    assert cli.main([str(path), "-o", "text"]) == 0  # explicit flag wins over the env var
+    assert capsys.readouterr().out == "Xin chào\n"
+
+
+def test_invalid_env_config_is_reported(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = _write_docx(tmp_path / "a.docx", "Xin chào")
+    monkeypatch.setenv("VIPARSE_OUTPUT", "bogus")
+    assert cli.main([str(path)]) == 1
+    assert "output must be one of" in capsys.readouterr().err
+
+
+def test_config_error_not_masked_by_empty_paths(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # A config error must surface even when the path arguments match nothing (config is
+    # resolved before the empty-paths check).
+    monkeypatch.setenv("VIPARSE_OUTPUT", "bogus")
+    assert cli.main(["nonexistent-*.pdf"]) == 1
+    assert "output must be one of" in capsys.readouterr().err
+
+
 def test_normalize_form_flag(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     import unicodedata
 

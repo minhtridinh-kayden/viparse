@@ -44,3 +44,10 @@ class UnsafeInput(ViparseError):
     Raised before parsing untrusted input, so a hostile file fails fast with a clear
     error instead of exhausting memory or time (SPEC-8 E8.3).
     """
+
+
+class ConfigError(ViparseError):
+    """Layered configuration is invalid (bad value in ``viparse.toml`` or a ``VIPARSE_*`` env var).
+
+    The message names the offending key so the misconfiguration is easy to fix (SPEC-5 E5.4).
+    """

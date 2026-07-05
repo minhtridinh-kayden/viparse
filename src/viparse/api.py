@@ -18,6 +18,7 @@ from concurrent.futures import Future, ThreadPoolExecutor
 
 from viparse.cache import Cache, cache_key
 from viparse.chunk import ChunkOptions
+from viparse.config import UNSET, Settings, _Unset, load_settings
 from viparse.engines.docx import DocxEngine
 from viparse.engines.legacy import LegacyOfficeEngine
 from viparse.engines.ocr import OcrEngine
@@ -26,14 +27,7 @@ from viparse.engines.xlsx import XlsxEngine
 from viparse.errors import ViparseError
 from viparse.model import Document, NormalizedDoc
 from viparse.normalize.normalizer import VietnameseNormalizer
-from viparse.options import (
-    DEFAULT_MAX_BYTES,
-    DEFAULT_NORMALIZE_FORM,
-    DEFAULT_OUTPUT_FORMAT,
-    LoadOptions,
-    NormalizeForm,
-    OutputFormat,
-)
+from viparse.options import LoadOptions, NormalizeForm, OutputFormat
 from viparse.pipeline import Pipeline
 from viparse.protocols import Engine, Source
 from viparse.registry import EngineRegistry
@@ -61,21 +55,28 @@ def _build_pipeline() -> Pipeline:
     return Pipeline(registry, VietnameseNormalizer(), DocumentRenderer())
 
 
-def _options(
-    output: OutputFormat,
-    encoding: str | None,
-    ocr: bool | None,
-    normalize: NormalizeForm,
-    max_bytes: int,
+def _resolve_options(
+    settings: Settings | None,
+    output: OutputFormat | _Unset,
+    encoding: str | None | _Unset,
+    ocr: bool | None | _Unset,
+    normalize: NormalizeForm | _Unset,
+    max_bytes: int | _Unset,
     chunk: ChunkOptions | None,
 ) -> LoadOptions:
-    """Map the public keyword parameters onto the internal :class:`LoadOptions`."""
+    """Layer the public keyword parameters over the resolved :class:`Settings`.
+
+    An argument left as :data:`~viparse.config.UNSET` falls back to ``settings`` (which,
+    when not supplied, is resolved from ``VIPARSE_*`` env vars and ``viparse.toml``); an
+    explicit argument always wins. ``chunk`` is per-call only and never layered.
+    """
+    base = settings if settings is not None else load_settings()
     return LoadOptions(
-        fmt=output,
-        encoding=encoding,
-        ocr=ocr,
-        normalize_form=normalize,
-        max_bytes=max_bytes,
+        fmt=base.output if output is UNSET else output,
+        encoding=base.encoding if encoding is UNSET else encoding,
+        ocr=base.ocr if ocr is UNSET else ocr,
+        normalize_form=base.normalize if normalize is UNSET else normalize,
+        max_bytes=base.max_bytes if max_bytes is UNSET else max_bytes,
         chunk=chunk,
     )
 
@@ -83,29 +84,39 @@ def _options(
 def load(
     source: Source,
     *,
-    output: OutputFormat = DEFAULT_OUTPUT_FORMAT,
-    encoding: str | None = None,
-    ocr: bool | None = None,
-    normalize: NormalizeForm = DEFAULT_NORMALIZE_FORM,
-    max_bytes: int = DEFAULT_MAX_BYTES,
+    output: OutputFormat | _Unset = UNSET,
+    encoding: str | None | _Unset = UNSET,
+    ocr: bool | None | _Unset = UNSET,
+    normalize: NormalizeForm | _Unset = UNSET,
+    max_bytes: int | _Unset = UNSET,
     cache: Cache | None = None,
     chunk: ChunkOptions | None = None,
+    settings: Settings | None = None,
 ) -> list[Document]:
     """Parse ``source`` into a list of Unicode-**NFC** :class:`Document` objects.
+
+    The ``output`` / ``encoding`` / ``ocr`` / ``normalize`` / ``max_bytes`` options are
+    **layered** (SPEC-5 E5.4): an argument left unset falls back to ``VIPARSE_*`` env vars,
+    then ``viparse.toml``, then the built-in default; an explicit argument always wins.
 
     :param source: path to the document (``str`` or :class:`~pathlib.Path`).
     :param output: rendered output format — ``"markdown"`` (default), ``"text"``, or ``"json"``.
     :param encoding: force a legacy source encoding (e.g. ``"tcvn3"``), or ``"auto"`` to
         opt into content-based detection when the source carries no font signal.
-    :param ocr: force OCR on/off; ``None`` (default) lets the router decide from the file.
+    :param ocr: force OCR on/off; the router otherwise decides from the file.
     :param normalize: target Unicode normalization form (default ``"NFC"``).
     :param max_bytes: reject an input larger than this many bytes (default 100 MiB).
     :param cache: optional content-hash :class:`~viparse.cache.Cache`; a cache hit skips
         re-parsing an unchanged file (SPEC-7 E7.3).
     :param chunk: optional :class:`~viparse.chunk.ChunkOptions`; when given, the returned
         Document's ``chunks`` are populated with retrieval-sized pieces (SPEC-4 E4.2).
+    :param settings: pre-resolved :class:`~viparse.config.Settings` to layer under the
+        arguments; when omitted, settings are resolved from the environment and config file
+        **on every call** (a ``viparse.toml`` stat/read + an env scan). When loading many
+        files, resolve once with :func:`~viparse.load_settings` and pass ``settings=`` here
+        (or use :func:`load_batch`, which resolves once for the whole batch).
     """
-    options = _options(output, encoding, ocr, normalize, max_bytes, chunk)
+    options = _resolve_options(settings, output, encoding, ocr, normalize, max_bytes, chunk)
     return [_load_one(_build_pipeline(), source, options, cache)]
 
 
@@ -159,14 +170,15 @@ def _batch_load(
 def load_batch(
     sources: Iterable[Source],
     *,
-    output: OutputFormat = DEFAULT_OUTPUT_FORMAT,
-    encoding: str | None = None,
-    ocr: bool | None = None,
-    normalize: NormalizeForm = DEFAULT_NORMALIZE_FORM,
-    max_bytes: int = DEFAULT_MAX_BYTES,
+    output: OutputFormat | _Unset = UNSET,
+    encoding: str | None | _Unset = UNSET,
+    ocr: bool | None | _Unset = UNSET,
+    normalize: NormalizeForm | _Unset = UNSET,
+    max_bytes: int | _Unset = UNSET,
     cache: Cache | None = None,
     workers: int | None = None,
     chunk: ChunkOptions | None = None,
+    settings: Settings | None = None,
 ) -> Iterator[list[Document]]:
     """Lazily load each source, yielding its result list **in input order**.
 
@@ -182,10 +194,26 @@ def load_batch(
     the (at most ``workers``) in-flight parses to finish before the pool shuts down.
 
     ``chunk`` behaves as in :func:`load`: when set, each result Document's ``chunks`` are
-    populated with retrieval-sized pieces.
+    populated with retrieval-sized pieces. ``output`` / ``encoding`` / ``ocr`` / ``normalize`` /
+    ``max_bytes`` are layered over ``settings`` exactly as in :func:`load`.
+
+    Option resolution (and any :class:`~viparse.errors.ConfigError` from bad env/config) happens
+    **eagerly at call time**, not on first iteration — so a misconfiguration surfaces to the
+    caller here rather than mid-stream, past the per-source error isolation.
     """
-    options = _options(output, encoding, ocr, normalize, max_bytes, chunk)
+    options = _resolve_options(settings, output, encoding, ocr, normalize, max_bytes, chunk)
     pipeline = _build_pipeline()
+    return _iter_batch(pipeline, sources, options, cache, workers)
+
+
+def _iter_batch(
+    pipeline: Pipeline,
+    sources: Iterable[Source],
+    options: LoadOptions,
+    cache: Cache | None,
+    workers: int | None,
+) -> Iterator[list[Document]]:
+    """The lazy per-source generator behind :func:`load_batch` (options already resolved)."""
     if workers is None or workers <= 1:
         for source in sources:
             yield [_batch_load(pipeline, source, options, cache)]
