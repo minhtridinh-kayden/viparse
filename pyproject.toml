@@ -17,6 +17,9 @@ office = ["python-docx>=1.1,<2"]
 all = ["viparse[office]"]
 dev = ["ruff", "mypy", "pytest", "pytest-cov", "build"]
 
+[project.scripts]
+viparse = "viparse.cli:main"
+
 [project.urls]
 Repository = "https://github.com/minhtridinh/viparse"
 
