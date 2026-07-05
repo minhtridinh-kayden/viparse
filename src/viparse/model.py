@@ -17,6 +17,34 @@ from typing import Any
 
 
 @dataclass(frozen=True, slots=True)
+class Heading:
+    """A heading block with a 1-based ``level`` (``Heading 2`` → ``level=2``)."""
+
+    level: int
+    text: str
+
+
+@dataclass(frozen=True, slots=True)
+class Paragraph:
+    """A body paragraph of normalized (Unicode NFC) text."""
+
+    text: str
+
+
+@dataclass(frozen=True, slots=True)
+class Table:
+    """A table as ``rows`` of cell strings (row-major, may be ragged)."""
+
+    # Excluded from __hash__ (a list is unhashable) so the frozen type stays hashable.
+    rows: list[list[str]] = field(hash=False)
+
+
+# The structural blocks a renderer consumes, in document order. Kept deliberately
+# small (heading/paragraph/table) — the moat is normalization, not layout fidelity.
+Block = Heading | Paragraph | Table
+
+
+@dataclass(frozen=True, slots=True)
 class DocumentMetadata:
     """Provenance and detection metadata attached to a :class:`Document`.
 
@@ -97,7 +125,10 @@ class NormalizedDoc:
 
     Records what the normalization layer decided (``encoding_detected`` and its
     ``encoding_confidence`` in ``[0, 1]``, detected ``lang``) so the renderer can
-    project these onto :class:`DocumentMetadata`.
+    project these onto :class:`DocumentMetadata`. ``text`` is the normalized flat
+    text; ``blocks`` is the same content as ordered structural blocks (empty when
+    the engine supplied no block structure), which the renderer uses to emit
+    markdown/JSON that preserves headings and tables.
     """
 
     source: str
@@ -110,3 +141,4 @@ class NormalizedDoc:
     encoding_detected: str | None = None
     encoding_confidence: float | None = None
     warnings: list[str] = field(default_factory=list, hash=False)
+    blocks: list[Block] = field(default_factory=list, hash=False)

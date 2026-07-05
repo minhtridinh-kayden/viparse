@@ -13,11 +13,15 @@ from viparse.errors import (
     ViparseError,
 )
 from viparse.model import (
+    Block,
     Chunk,
     Document,
     DocumentMetadata,
+    Heading,
     NormalizedDoc,
+    Paragraph,
     RawExtraction,
+    Table,
 )
 from viparse.normalize.normalizer import VietnameseNormalizer
 from viparse.observability import MetricsHook, PipelineMetrics
@@ -31,13 +35,16 @@ from viparse.protocols import (
     Source,
 )
 from viparse.registry import EngineRegistry
+from viparse.structure import DocumentRenderer
 
 __version__ = "0.0.0"
 
 __all__ = [
     "DEFAULT_PRIORITY",
+    "Block",
     "Chunk",
     "DetectedFormat",
+    "DocumentRenderer",
     "DocxEngine",
     "Document",
     "DocumentMetadata",
@@ -46,6 +53,7 @@ __all__ = [
     "EngineRegistry",
     "EngineUnavailable",
     "ExtractionError",
+    "Heading",
     "LoadOptions",
     "MetricsHook",
     "MissingDependency",
@@ -53,11 +61,13 @@ __all__ = [
     "NormalizedDoc",
     "Normalizer",
     "OutputFormat",
+    "Paragraph",
     "Pipeline",
     "PipelineMetrics",
     "RawExtraction",
     "Renderer",
     "Source",
+    "Table",
     "UnsupportedFormat",
     "VietnameseNormalizer",
     "ViparseError",

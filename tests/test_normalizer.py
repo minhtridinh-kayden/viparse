@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from viparse.model import RawExtraction
+from viparse.model import Heading, Paragraph, RawExtraction, Table
 from viparse.normalize.normalizer import VietnameseNormalizer
 from viparse.options import LoadOptions
 
@@ -102,6 +102,70 @@ def test_extract_stage_warnings_are_carried_forward() -> None:
     )
     nd = VietnameseNormalizer().normalize(raw, LoadOptions())
     assert "page 2 failed to extract" in nd.warnings
+
+
+def _raw_blocks(blocks: list[Any], fonts: list[Any], text: str = "") -> RawExtraction:
+    return RawExtraction(
+        source="a.docx",
+        content_type="application/vnd.docx",
+        text=text,
+        engine="docx",
+        signals={"fonts": fonts, "blocks": blocks},
+    )
+
+
+def test_normalizes_structural_blocks() -> None:
+    blocks = [
+        {"type": "heading", "level": 2, "text": "  Tiêu đề  "},
+        {"type": "paragraph", "text": "Nội   dung"},
+        {"type": "table", "rows": [["A", "B"], ["1", "2"]]},
+    ]
+    nd = VietnameseNormalizer().normalize(_raw_blocks(blocks, ["Arial"]), LoadOptions())
+    assert nd.blocks == [
+        Heading(level=2, text="Tiêu đề"),
+        Paragraph(text="Nội dung"),
+        Table(rows=[["A", "B"], ["1", "2"]]),
+    ]
+
+
+def test_flat_text_stays_the_engine_flat_text_normalized() -> None:
+    # The engine authors raw.text; the normalizer only encoding-converts + cleans it,
+    # never re-derives it from the blocks.
+    raw = _raw_blocks([{"type": "paragraph", "text": "x"}], ["Arial"], text="Nội   dung  ")
+    nd = VietnameseNormalizer().normalize(raw, LoadOptions())
+    assert nd.text == "Nội dung"
+
+
+def test_block_conversion_applies_legacy_encoding_per_field() -> None:
+    blocks = [
+        {"type": "heading", "level": 1, "text": "µ¸"},
+        {"type": "table", "rows": [["¶·¹"]]},
+    ]
+    nd = VietnameseNormalizer().normalize(_raw_blocks(blocks, [".VnTime"]), LoadOptions())
+    assert nd.encoding_detected == "tcvn3"
+    assert nd.blocks == [Heading(level=1, text="àá"), Table(rows=[["ảãạ"]])]
+
+
+def test_malformed_blocks_degrade_without_crashing() -> None:
+    # A third-party engine emitting off-contract blocks must not raise KeyError/TypeError.
+    blocks = [
+        {"type": "heading", "text": "no level"},  # missing level → defaults to 1
+        {"type": "paragraph"},  # missing text → empty
+        {"type": "table"},  # missing rows → empty table
+        {"text": "no type"},  # missing type → treated as a paragraph
+    ]
+    nd = VietnameseNormalizer().normalize(_raw_blocks(blocks, ["Arial"]), LoadOptions())
+    assert nd.blocks == [
+        Heading(level=1, text="no level"),
+        Paragraph(text=""),
+        Table(rows=[]),
+        Paragraph(text="no type"),
+    ]
+
+
+def test_no_blocks_leaves_blocks_empty() -> None:
+    nd = VietnameseNormalizer().normalize(_raw("plain", ["Arial"]), LoadOptions())
+    assert nd.blocks == []
 
 
 @pytest.mark.parametrize("char", list(_VIETNAMESE_ACCENTED))
