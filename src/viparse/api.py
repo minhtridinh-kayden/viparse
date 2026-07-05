@@ -68,7 +68,8 @@ def load(
 
     :param source: path to the document (``str`` or :class:`~pathlib.Path`).
     :param output: rendered output format — ``"markdown"`` (default), ``"text"``, or ``"json"``.
-    :param encoding: force a legacy source encoding (e.g. ``"tcvn3"``) instead of auto-detecting.
+    :param encoding: force a legacy source encoding (e.g. ``"tcvn3"``), or ``"auto"`` to
+        opt into content-based detection when the source carries no font signal.
     :param ocr: force OCR on/off; ``None`` (default) lets the router decide from the file.
     :param normalize: target Unicode normalization form (default ``"NFC"``).
     """

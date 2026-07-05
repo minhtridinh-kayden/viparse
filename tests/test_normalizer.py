@@ -9,6 +9,7 @@ import pytest
 
 from viparse.model import Heading, Paragraph, RawExtraction, Table
 from viparse.normalize.normalizer import VietnameseNormalizer
+from viparse.normalize.viscii import _BYTE_TO_CODEPOINT as _VISCII_BYTES
 from viparse.options import LoadOptions
 
 # Every precomposed Vietnamese accented vowel (lowercase) plus đ, for NFC/NFD tests.
@@ -70,6 +71,37 @@ def test_unknown_encoding_override_warns_and_leaves_text() -> None:
     assert nd.encoding_detected == "vps"
     assert any("no conversion table" in w for w in nd.warnings)
     assert nd.text == "plain"
+
+
+def _viscii_surface(text: str) -> str:
+    cp_to_byte = {cp: byte for byte, cp in _VISCII_BYTES}
+    return bytes(cp_to_byte.get(ord(ch), ord(ch)) for ch in text).decode("latin-1")
+
+
+def test_auto_encoding_content_detects_without_a_font_signal() -> None:
+    # encoding="auto" opts in: "Việt Nam độc lập" in VISCII bytes, no font signal.
+    text = "Việt Nam độc lập"
+    nd = VietnameseNormalizer().normalize(
+        _raw(_viscii_surface(text), []), LoadOptions(encoding="auto")
+    )
+    assert nd.encoding_detected == "viscii"
+    assert nd.text == text
+
+
+def test_default_mode_never_content_detects() -> None:
+    # Without encoding="auto", the same fontless legacy surface is LEFT ALONE — the moat
+    # never risks a wrong conversion on a document the caller has not asserted is legacy.
+    surface = _viscii_surface("Việt Nam độc lập")
+    nd = VietnameseNormalizer().normalize(_raw(surface, []), LoadOptions())
+    assert nd.encoding_detected is None
+    assert nd.text == surface
+
+
+def test_auto_encoding_still_prefers_a_font_signal() -> None:
+    # In auto mode a real (non-legacy) font signal wins; content detection is not consulted.
+    surface = _viscii_surface("Việt Nam")
+    nd = VietnameseNormalizer().normalize(_raw(surface, ["Arial"]), LoadOptions(encoding="auto"))
+    assert nd.encoding_detected is None
 
 
 def test_mixed_encoding_warns() -> None:
