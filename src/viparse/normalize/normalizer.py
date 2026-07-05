@@ -17,6 +17,7 @@ from __future__ import annotations
 import unicodedata
 
 from viparse.model import NormalizedDoc, RawExtraction
+from viparse.normalize.cleanup import clean_text
 from viparse.normalize.detector import detect_encoding
 from viparse.normalize.encodings import get_charmap
 from viparse.normalize.tables import convert
@@ -62,6 +63,9 @@ class VietnameseNormalizer:
         # Enforce the requested form (default NFC) when conversion did not already.
         if not converted:
             text = unicodedata.normalize(options.normalize_form, text)
+        # Cleanup can strip format characters that were blocking composition, so it
+        # re-normalizes to the requested form as its final step.
+        text = clean_text(text, options.normalize_form)
         if confidence < _LOW_CONFIDENCE:
             warnings.append(f"low encoding-detection confidence ({confidence:.2f})")
 

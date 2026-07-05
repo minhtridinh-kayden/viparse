@@ -87,6 +87,11 @@ def test_none_or_missing_fonts_signal_does_not_crash() -> None:
         assert nd.text == "x"
 
 
+def test_normalizer_applies_cleanup() -> None:
+    nd = VietnameseNormalizer().normalize(_raw("  a    b  \n\n\n c ", ["Arial"]), LoadOptions())
+    assert nd.text == "a b\n\nc"
+
+
 def test_extract_stage_warnings_are_carried_forward() -> None:
     raw = RawExtraction(
         source="a",
