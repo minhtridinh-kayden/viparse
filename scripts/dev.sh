@@ -19,6 +19,7 @@ Usage:
   scripts/dev.sh type       # mypy src
   scripts/dev.sh test       # pytest with coverage
   scripts/dev.sh build      # build the wheel/sdist (not a CI gate)
+  scripts/dev.sh sbom       # generate a CycloneDX SBOM (sbom.json)
   scripts/dev.sh -h|--help  # show this help
 EOF
 }
@@ -44,6 +45,11 @@ build() {
     python -m build
 }
 
+sbom() {
+    echo ">> sbom (CycloneDX)"
+    cyclonedx-py environment --pyproject pyproject.toml --of json -o sbom.json
+}
+
 main() {
     if [ "$#" -gt 1 ]; then
         echo "error: too many arguments; expected at most one command" >&2
@@ -57,6 +63,7 @@ main() {
         type) type_check ;;
         test) test_suite ;;
         build) build ;;
+        sbom) sbom ;;
         all)
             # Mirrors ci.yml's quality job exactly — no build (CI never builds).
             lint
