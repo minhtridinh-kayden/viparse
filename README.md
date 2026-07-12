@@ -18,9 +18,23 @@ Heavy dependencies are lazy-imported via extras (`viparse[ocr]`, `viparse[office
 
 ## Status
 
-Early design. See [`docs/specs/`](docs/specs/README.md) for the full spec map (SPEC-0 … SPEC-8).
+Released — [`viparse` 0.1.0 on PyPI](https://pypi.org/project/viparse/). See
+[`docs/specs/`](docs/specs/README.md) for the full spec map (SPEC-0 … SPEC-8) and
+[`CHANGELOG.md`](CHANGELOG.md) for release notes.
 
-## Planned usage
+## Installation
+
+```bash
+pip install viparse               # core — pure stdlib, no parser/OCR binaries
+pip install "viparse[office]"     # .docx / .xlsx and legacy .doc / .xls
+pip install "viparse[pdf]"        # digital PDFs
+pip install "viparse[ocr]"        # scanned PDFs (needs the Tesseract binary)
+pip install "viparse[all]"        # every engine
+```
+
+Run `viparse doctor` to see which engines your installed extras enable.
+
+## Usage
 
 ```python
 import viparse
@@ -36,4 +50,4 @@ viparse doctor        # list available engines per installed extras
 
 ## License
 
-TBD.
+[MIT](LICENSE) © 2026 minhtridinh
