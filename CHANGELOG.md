@@ -6,6 +6,24 @@ All notable changes to viparse are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-07-12
+
+Documentation and packaging only — no code or behavior changes.
+
+### Added
+
+- **MIT license** — added a `LICENSE` file and declared `license = "MIT"` in the package
+  metadata (VIP-62).
+- **README** — installation instructions (`pip install viparse` and extras), a usage section,
+  and released status linking PyPI (VIP-62).
+- **PyPI publishing** — a GitHub Actions workflow publishes to PyPI via Trusted Publishing
+  (OIDC, no stored token) when a release is published (VIP-61).
+
+### Fixed
+
+- **Project URLs** — corrected the repository URL and added Homepage / Changelog links shown on
+  the PyPI page (VIP-61).
+
 ## [0.1.0] — 2026-07-12
 
 First tagged release. Covers the full M0–M5 feature set (VIP-1 … VIP-59).
@@ -40,5 +58,6 @@ First tagged release. Covers the full M0–M5 feature set (VIP-1 … VIP-59).
 - **Parallel batch** — `load_batch(..., workers=N)` with bounded concurrency and per-source
   error isolation.
 
-[Unreleased]: https://github.com/minhtridinh-kayden/viparse/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/minhtridinh-kayden/viparse/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/minhtridinh-kayden/viparse/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/minhtridinh-kayden/viparse/releases/tag/v0.1.0

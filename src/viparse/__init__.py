@@ -49,7 +49,7 @@ from viparse.protocols import (
 from viparse.registry import EngineRegistry
 from viparse.structure import DocumentRenderer
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = [
     "DEFAULT_PRIORITY",
