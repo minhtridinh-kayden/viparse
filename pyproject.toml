@@ -27,7 +27,9 @@ dev = ["ruff", "mypy", "pytest", "pytest-cov", "build", "reportlab>=4,<5", "cycl
 viparse = "viparse.cli:main"
 
 [project.urls]
-Repository = "https://github.com/minhtridinh/viparse"
+Homepage = "https://github.com/minhtridinh-kayden/viparse"
+Repository = "https://github.com/minhtridinh-kayden/viparse"
+Changelog = "https://github.com/minhtridinh-kayden/viparse/blob/main/CHANGELOG.md"
 
 [tool.hatch.version]
 path = "src/viparse/__init__.py"
