@@ -6,6 +6,10 @@ All notable changes to viparse are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.1.0] — 2026-07-12
+
+First tagged release. Covers the full M0–M5 feature set (VIP-1 … VIP-59).
+
 ### Added
 
 - **Public API** — `viparse.load(source, *, output, encoding, ocr, normalize, max_bytes,
@@ -36,4 +40,5 @@ All notable changes to viparse are documented here. The format is based on
 - **Parallel batch** — `load_batch(..., workers=N)` with bounded concurrency and per-source
   error isolation.
 
-[Unreleased]: https://github.com/minhtridinh-kayden/viparse/commits/main
+[Unreleased]: https://github.com/minhtridinh-kayden/viparse/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/minhtridinh-kayden/viparse/releases/tag/v0.1.0
