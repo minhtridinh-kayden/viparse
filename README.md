@@ -18,7 +18,7 @@ Heavy dependencies are lazy-imported via extras (`viparse[ocr]`, `viparse[office
 
 ## Status
 
-Released — [`viparse` 0.1.0 on PyPI](https://pypi.org/project/viparse/). See
+Released — [`viparse` 0.1.3 on PyPI](https://pypi.org/project/viparse/). See
 [`docs/specs/`](docs/specs/README.md) for the full spec map (SPEC-0 … SPEC-8) and
 [`CHANGELOG.md`](CHANGELOG.md) for release notes.
 
