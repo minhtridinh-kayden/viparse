@@ -6,6 +6,17 @@ All notable changes to viparse are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.1.3] — 2026-07-18
+
+### Fixed
+
+- **Per-block encoding detection for mixed-encoding documents** — a document that mixes a
+  legacy `.Vn*`/`VNI-` run with already-Unicode runs is now detected and converted per block,
+  by each block's own font signal, instead of applying one file-wide verdict. A Unicode run
+  containing a character that is also a legacy surface byte (e.g. `viparse® 2026`) is no longer
+  corrupted (`viparseđ 2026`), while the adjacent legacy run still converts. Single-encoding
+  documents are unaffected — their output is byte-for-byte identical (VIP-65).
+
 ## [0.1.2] — 2026-07-12
 
 Dependency compatibility only — no code or behavior changes.
