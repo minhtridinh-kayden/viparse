@@ -34,7 +34,7 @@ from viparse.normalize.detector import (
     detect_encoding,
     detect_encoding_by_content,
 )
-from viparse.normalize.encodings import CHARMAPS, get_charmap
+from viparse.normalize.encodings import AUTO_DETECT_CHARMAPS, get_charmap
 from viparse.normalize.tables import Charmap, convert
 from viparse.options import LoadOptions, NormalizeForm
 
@@ -120,7 +120,9 @@ class VietnameseNormalizer:
                 # (e.g. Spanish "señor") as legacy and corrupt it — the moat's cardinal
                 # sin. The caller opting in asserts the source is legacy Vietnamese. The
                 # text is cleaned first so control-character noise cannot dilute the score.
-                detection = detect_encoding_by_content(clean_text(raw.text, form), CHARMAPS)
+                detection = detect_encoding_by_content(
+                    clean_text(raw.text, form), AUTO_DETECT_CHARMAPS
+                )
 
             # Per-block path: only when the engine tagged blocks with their own fonts and
             # those blocks resolve to different encodings (a real mixed-encoding document).

@@ -105,7 +105,7 @@ def test_registry_lookup() -> None:
 
 
 def test_registry_contains_expected_encodings() -> None:
-    assert set(CHARMAPS) == {"tcvn3", "vni", "viscii"}
+    assert set(CHARMAPS) == {"tcvn3", "vni", "viscii", "vps"}
 
 
 def test_register_rejects_duplicate_names() -> None:

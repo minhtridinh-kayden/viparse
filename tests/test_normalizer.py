@@ -66,9 +66,10 @@ def test_normalize_form_nfd_is_respected() -> None:
 
 
 def test_unknown_encoding_override_warns_and_leaves_text() -> None:
-    # VPS is a real Vietnamese encoding that viparse does not yet have a table for.
-    nd = VietnameseNormalizer().normalize(_raw("plain", ["Arial"]), LoadOptions(encoding="vps"))
-    assert nd.encoding_detected == "vps"
+    # Vietware is a real Vietnamese encoding that viparse does not yet have a table for.
+    raw = _raw("plain", ["Arial"])
+    nd = VietnameseNormalizer().normalize(raw, LoadOptions(encoding="vietware"))
+    assert nd.encoding_detected == "vietware"
     assert any("no conversion table" in w for w in nd.warnings)
     assert nd.text == "plain"
 
