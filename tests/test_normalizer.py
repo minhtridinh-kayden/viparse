@@ -238,6 +238,121 @@ def test_no_blocks_leaves_blocks_empty() -> None:
     assert nd.blocks == []
 
 
+# --- Per-block detection for mixed-encoding documents (SPEC-3 T3.2.4) ---
+
+
+def test_mixed_document_converts_each_block_by_its_own_encoding() -> None:
+    # A legacy TCVN3 paragraph next to a Unicode paragraph whose text legitimately
+    # contains "®" (also a TCVN3 surface byte for đ). Whole-document conversion would
+    # corrupt "viparse®" → "viparseđ"; per-block detection must leave it alone.
+    blocks = [
+        {"type": "paragraph", "text": "µ¸", "fonts": [".VnTime"]},  # TCVN3 -> "àá"
+        {"type": "paragraph", "text": "viparse® 2026", "fonts": ["Arial"]},  # Unicode, keep
+    ]
+    raw = _raw_blocks(blocks, [".VnTime", "Arial"], text="µ¸\nviparse® 2026")
+    nd = VietnameseNormalizer().normalize(raw, LoadOptions())
+    assert nd.blocks == [Paragraph(text="àá"), Paragraph(text="viparse® 2026")]
+    assert nd.text == "àá\nviparse® 2026"  # flat text rebuilt from the per-block conversions
+    assert nd.encoding_detected == "tcvn3"
+    assert nd.encoding_confidence == pytest.approx(0.95)
+
+
+def test_mixed_document_rebuilds_flat_text_including_a_table() -> None:
+    # A legacy table beside a Unicode paragraph: the rebuilt flat text keeps the table's
+    # tab-joined rows and leaves the Unicode block (with its "®") untouched.
+    blocks = [
+        {"type": "table", "rows": [["µ¸", "¶·"]], "fonts": [".VnTime"]},  # TCVN3
+        {"type": "paragraph", "text": "viparse® 2026", "fonts": ["Arial"]},  # Unicode
+    ]
+    raw = _raw_blocks(blocks, [".VnTime", "Arial"])
+    nd = VietnameseNormalizer().normalize(raw, LoadOptions())
+    assert nd.blocks == [Table(rows=[["àá", "ảã"]]), Paragraph(text="viparse® 2026")]
+    assert nd.text == "àá\tảã\nviparse® 2026"
+    assert nd.encoding_detected == "tcvn3"
+
+
+def test_mixed_two_legacy_encodings_convert_independently() -> None:
+    blocks = [
+        {"type": "paragraph", "text": "µ¸", "fonts": [".VnTime"]},  # TCVN3 -> "àá"
+        {"type": "paragraph", "text": "aù", "fonts": ["VNI-Times"]},  # VNI -> "á"
+    ]
+    raw = _raw_blocks(blocks, [".VnTime", "VNI-Times"])
+    nd = VietnameseNormalizer().normalize(raw, LoadOptions())
+    assert nd.blocks == [Paragraph(text="àá"), Paragraph(text="á")]
+    assert any("multiple legacy encodings across blocks" in w for w in nd.warnings)
+
+
+def test_uniform_blocks_are_not_treated_as_mixed() -> None:
+    # Every block resolves to the same encoding → the whole-document path runs, so the
+    # flat text stays the engine's own flattening (not rebuilt from the blocks).
+    blocks = [
+        {"type": "paragraph", "text": "µ¸", "fonts": [".VnTime"]},
+        {"type": "paragraph", "text": "¶·", "fonts": [".VnTime"]},
+    ]
+    raw = _raw_blocks(blocks, [".VnTime"], text="ENGINE-FLAT")
+    nd = VietnameseNormalizer().normalize(raw, LoadOptions())
+    assert nd.blocks == [Paragraph(text="àá"), Paragraph(text="ảã")]
+    assert nd.text == "ENGINE-FLAT"  # whole-document path keeps the engine's flat text
+    assert not any("per block" in w for w in nd.warnings)
+
+
+def test_legacy_block_beside_fontless_block_inherits_document_verdict() -> None:
+    # A block with no font signal inherits the document-level encoding; when the only
+    # font signal is legacy, the document is uniform (not mixed) and converts as one.
+    blocks = [
+        {"type": "paragraph", "text": "µ¸", "fonts": [".VnTime"]},
+        {"type": "paragraph", "text": "¶·"},  # no per-block fonts
+    ]
+    raw = _raw_blocks(blocks, [".VnTime"], text="µ¸\n¶·")
+    nd = VietnameseNormalizer().normalize(raw, LoadOptions())
+    assert nd.blocks == [Paragraph(text="àá"), Paragraph(text="ảã")]
+    assert nd.encoding_detected == "tcvn3"
+
+
+def test_encoding_override_still_applies_to_every_block() -> None:
+    # An explicit override is a whole-document decision and must ignore per-block fonts.
+    blocks = [
+        {"type": "paragraph", "text": "aù", "fonts": ["Arial"]},
+        {"type": "paragraph", "text": "aï", "fonts": ["Times New Roman"]},
+    ]
+    raw = _raw_blocks(blocks, ["Arial", "Times New Roman"])
+    nd = VietnameseNormalizer().normalize(raw, LoadOptions(encoding="vni"))
+    assert nd.encoding_detected == "vni"
+    assert nd.blocks == [Paragraph(text="á"), Paragraph(text="ạ")]
+
+
+def test_mixed_dominant_encoding_only_on_inherited_blocks_does_not_crash() -> None:
+    # The dominant encoding (tcvn3) reaches the document only by inheritance: the one
+    # font-bearing block is VNI, while two fontless blocks inherit the document verdict
+    # (a real shape when a legacy run sits in an empty paragraph that yields no block).
+    # Confidence must fall back to the document-level detection, not reduce over an empty
+    # set — which would raise ValueError and abort the load.
+    blocks = [
+        {"type": "paragraph", "text": "aù", "fonts": ["VNI-Times"]},  # VNI -> "á"
+        {"type": "paragraph", "text": "µ¸"},  # no fonts -> inherits tcvn3
+        {"type": "paragraph", "text": "¶·"},  # no fonts -> inherits tcvn3
+    ]
+    raw = _raw_blocks(blocks, [".VnTime", "VNI-Times"], text="aù\nµ¸\n¶·")
+    nd = VietnameseNormalizer().normalize(raw, LoadOptions())
+    assert nd.blocks == [Paragraph(text="á"), Paragraph(text="àá"), Paragraph(text="ảã")]
+    assert nd.encoding_detected == "tcvn3"
+    assert nd.encoding_confidence == pytest.approx(0.6)  # inherited from the doc verdict
+
+
+def test_mixed_flat_text_is_cleaned_like_the_single_encoding_path() -> None:
+    # A trailing block that normalizes to an empty line must not leave a dangling blank
+    # line in the flat text: the mixed path re-cleans the joined text the same way the
+    # single-encoding path cleans raw.text (trailing-newline strip, blank-run cap).
+    blocks = [
+        {"type": "paragraph", "text": "µ¸", "fonts": [".VnTime"]},  # TCVN3 -> "àá"
+        {"type": "paragraph", "text": "viparse® 2026", "fonts": ["Arial"]},  # Unicode
+        {"type": "paragraph", "text": "   ", "fonts": ["Arial"]},  # collapses to empty
+    ]
+    raw = _raw_blocks(blocks, [".VnTime", "Arial"])
+    nd = VietnameseNormalizer().normalize(raw, LoadOptions())
+    assert nd.text == "àá\nviparse® 2026"  # trailing blank line stripped, not "…2026\n"
+
+
 # Both cases: the moat must recompose upper- and lower-case Vietnamese letters alike.
 _VIETNAMESE_REPERTOIRE = sorted(
     set(_VIETNAMESE_ACCENTED) | {ch.upper() for ch in _VIETNAMESE_ACCENTED}

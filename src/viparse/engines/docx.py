@@ -54,14 +54,23 @@ class DocxEngine:
         fonts: set[str] = set()
         for kind, item in _iter_block_items(document):
             if kind == "paragraph":
-                _collect_fonts(item, fonts)
+                block_fonts: set[str] = set()
+                _collect_fonts(item, block_fonts)
+                fonts.update(block_fonts)
                 block = _paragraph_block(item)
                 if block is not None:
+                    # Per-block font signal (SPEC-3 T3.2.4): lets the normalizer detect a
+                    # mixed-encoding document and convert each block by its own encoding.
+                    if block_fonts:
+                        block["fonts"] = sorted(block_fonts)
                     blocks.append(block)
             else:  # table
                 rows, table_fonts = _table_block(item)
                 fonts.update(table_fonts)
-                blocks.append({"type": "table", "rows": rows})
+                table_block: dict[str, Any] = {"type": "table", "rows": rows}
+                if table_fonts:
+                    table_block["fonts"] = sorted(table_fonts)
+                blocks.append(table_block)
         signals: dict[str, Any] = {"fonts": sorted(fonts), "blocks": blocks}
         return RawExtraction(
             source=str(source),
