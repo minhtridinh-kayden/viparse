@@ -1,0 +1,30 @@
+# Optional CI — prefer workflow_dispatch until maintainer opts into PR gates
+# If PAT lacks `workflow` scope, ship this as tests/auditai/workflow-auditai.yml.example
+name: AuditAI
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Note
+        run: |
+          echo "Start your app or tests/auditai adapter on :18080 before enabling full gate."
+          echo "See tests/auditai/README.md"
+
+      # Uncomment when target HTTP is available in CI:
+      # - run: python tests/auditai/mock_adapter.py &
+      # - uses: iZenDeveloper/auditai@v0.1
+      #   env:
+      #     OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      #     XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+      #   with:
+      #     config: tests/auditai/auditai.yml
+      #     install: git+https://github.com/iZenDeveloper/auditai.git@v0.1.1
