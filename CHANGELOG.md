@@ -6,6 +6,8 @@ All notable changes to viparse are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.1.4] — 2026-07-19
+
 ### Changed
 
 - **Per-run encoding detection** — mixed-encoding detection now works at *run* granularity,
