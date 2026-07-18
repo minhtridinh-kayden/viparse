@@ -19,10 +19,11 @@ dependencies = []
 [project.optional-dependencies]
 office = ["python-docx>=1.1,<2", "openpyxl>=3.1,<4", "olefile>=0.47,<1"]
 pdf = ["pdfplumber>=0.11,<0.12"]
+rtf = ["striprtf>=0.0.29,<0.1"]
 ocr = ["pytesseract>=0.3,<0.4", "pdf2image>=1.17,<2", "pillow>=10,<13"]
 langchain = ["langchain-core>=0.3,<2"]
 llamaindex = ["llama-index-core>=0.11,<1"]
-all = ["viparse[office,pdf,ocr,langchain,llamaindex]"]
+all = ["viparse[office,pdf,rtf,ocr,langchain,llamaindex]"]
 dev = ["ruff", "mypy", "pytest", "pytest-cov", "build", "reportlab>=4,<6", "cyclonedx-bom"]
 
 [project.scripts]
@@ -56,6 +57,7 @@ files = ["src"]
 module = [
     "openpyxl.*",
     "pdfplumber.*",
+    "striprtf.*",
     "pytesseract.*",
     "pdf2image.*",
     "olefile.*",

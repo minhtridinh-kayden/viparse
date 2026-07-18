@@ -31,11 +31,15 @@ CONTENT_TYPE_PDF = "application/pdf"
 # Legacy OLE2 compound document (.doc/.xls). The engine resolves the exact kind
 # (msword vs ms-excel) with a real compound-file library.
 CONTENT_TYPE_OLE2 = "application/x-ole-storage"
+CONTENT_TYPE_RTF = "application/rtf"
 
 # --- Magic signatures -----------------------------------------------------
 _ZIP_MAGIC = b"PK\x03\x04"
 _PDF_MAGIC = b"%PDF-"
 _OLE2_MAGIC = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
+_RTF_MAGIC = b"{\\rtf"
+# Some editors prepend a UTF-8 BOM to an otherwise plain-text RTF; tolerate it.
+_UTF8_BOM = b"\xef\xbb\xbf"
 
 # How far to read past the header when sniffing the PDF text hint. This is a
 # best-effort window; a miss just yields an unknown hint, never a wrong one.
@@ -70,6 +74,8 @@ def detect_format(source: Source) -> DetectedFormat:
             return DetectedFormat(CONTENT_TYPE_PDF, is_scanned_pdf=_pdf_scanned_hint(window))
         if header.startswith(_OLE2_MAGIC):
             return DetectedFormat(CONTENT_TYPE_OLE2)
+        if header.removeprefix(_UTF8_BOM).startswith(_RTF_MAGIC):
+            return DetectedFormat(CONTENT_TYPE_RTF)
         if header.startswith(_ZIP_MAGIC):
             fh.seek(0)
             return DetectedFormat(_classify_zip(fh, path))

@@ -13,6 +13,7 @@ from viparse.detect import (
     CONTENT_TYPE_OLE2,
     CONTENT_TYPE_PDF,
     CONTENT_TYPE_PPTX,
+    CONTENT_TYPE_RTF,
     CONTENT_TYPE_XLSX,
     detect_format,
 )
@@ -44,6 +45,17 @@ def test_detects_xlsx(tmp_path: Path) -> None:
 def test_detects_pptx(tmp_path: Path) -> None:
     f = _write_zip(tmp_path / "a.pptx", ["ppt/presentation.xml"])
     assert detect_format(f).content_type == CONTENT_TYPE_PPTX
+
+
+def test_detects_rtf(tmp_path: Path) -> None:
+    f = _write(tmp_path / "a.rtf", rb"{\rtf1\ansi hello\par}")
+    assert detect_format(f).content_type == CONTENT_TYPE_RTF
+
+
+def test_detects_rtf_with_utf8_bom(tmp_path: Path) -> None:
+    """An editor's leading UTF-8 BOM before {\\rtf must not defeat detection."""
+    f = _write(tmp_path / "bom.rtf", b"\xef\xbb\xbf" + rb"{\rtf1\ansi hi\par}")
+    assert detect_format(f).content_type == CONTENT_TYPE_RTF
 
 
 def test_plain_zip_is_rejected(tmp_path: Path) -> None:

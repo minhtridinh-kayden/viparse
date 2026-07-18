@@ -6,6 +6,16 @@ All notable changes to viparse are documented here. The format is based on
 
 ## [Unreleased]
 
+### Added
+
+- **RTF support** — a new `.rtf` text-extraction engine (behind the `viparse[rtf]` extra,
+  wrapping the pure-Python `striprtf`), detected by magic bytes (a leading UTF-8 BOM is
+  tolerated). A legacy-encoded `.rtf` is normalized like any other font-less source — via
+  content detection (`encoding="auto"`) or an explicit `encoding=` override. The engine
+  deliberately does not infer an encoding from the RTF font table, which lists *declared*
+  rather than *applied* fonts and could otherwise convert a Unicode body through a legacy
+  charmap (VIP-75).
+
 ## [0.1.4] — 2026-07-19
 
 ### Changed

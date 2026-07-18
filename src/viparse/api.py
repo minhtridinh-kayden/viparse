@@ -23,6 +23,7 @@ from viparse.engines.docx import DocxEngine
 from viparse.engines.legacy import LegacyOfficeEngine
 from viparse.engines.ocr import OcrEngine
 from viparse.engines.pdf import PdfEngine
+from viparse.engines.rtf import RtfEngine
 from viparse.engines.xlsx import XlsxEngine
 from viparse.errors import ViparseError
 from viparse.model import Document, NormalizedDoc
@@ -44,7 +45,7 @@ def _default_engines() -> list[Engine]:
     Each is a thin adapter whose heavy parse library is imported lazily at extraction
     time, so listing one here never pulls its dependency at import — ``core`` stays light.
     """
-    return [DocxEngine(), XlsxEngine(), PdfEngine(), OcrEngine(), LegacyOfficeEngine()]
+    return [DocxEngine(), XlsxEngine(), PdfEngine(), RtfEngine(), OcrEngine(), LegacyOfficeEngine()]
 
 
 def _build_pipeline() -> Pipeline:
