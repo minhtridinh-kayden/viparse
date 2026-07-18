@@ -88,3 +88,17 @@ viparse doctor               # list available engines per installed extras
 - **One task = one branch = one commit = one PR.** PR/commit title: `VIP-<id> <short imperative>`,
   no description.
 - All committed artifacts (docs, comments, identifiers, commit titles) are in **English**.
+
+## Releases
+
+Versioning is **SemVer**. The version has a single source — `__version__` in
+`src/viparse/__init__.py` — which hatchling reads dynamically; never edit it in two places.
+
+- **One release = one Linear issue** titled `VIP-<id> Release vX.Y.Z`, moved to Done when the
+  release publishes. (First-class Linear Releases are intentionally not used — the issue is the
+  record.)
+- **Cutting a release:** bump `__version__`, add the matching `CHANGELOG.md` section, then land it
+  through the normal one-branch/one-PR flow into protected `main` (full CI green, squash-merge).
+- **Publishing:** tag `vX.Y.Z` on the merge commit and publish a **GitHub Release**. That triggers
+  `.github/workflows/publish.yml`, which uploads to PyPI via **Trusted Publishing (OIDC)** — no
+  stored token, and never run `twine upload` by hand. Verify with `pip install viparse==X.Y.Z`.
