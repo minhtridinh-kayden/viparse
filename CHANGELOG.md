@@ -6,6 +6,15 @@ All notable changes to viparse are documented here. The format is based on
 
 ## [Unreleased]
 
+### Changed
+
+- **Per-run encoding detection** — mixed-encoding detection now works at *run* granularity,
+  not just per block: a single paragraph that mixes a legacy `.Vn*`/`VNI-` run with a
+  Unicode run is converted run-by-run, so a Unicode run (e.g. one containing `®`) is no
+  longer mangled by a neighbour's legacy charmap. A block is only split when its runs
+  actually disagree, so a legacy multi-character form is never severed at a run boundary;
+  single-encoding and per-block output stay byte-for-byte identical (VIP-72).
+
 ### Added
 
 - **VPS legacy encoding** — added the VPS (Vietnamese Professional System) → Unicode
