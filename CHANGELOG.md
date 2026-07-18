@@ -6,6 +6,8 @@ All notable changes to viparse are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.1.5] — 2026-07-19
+
 ### Added
 
 - **RTF support** — a new `.rtf` text-extraction engine (behind the `viparse[rtf]` extra,
