@@ -168,6 +168,36 @@ def test_content_control_paragraphs_are_not_dropped(tmp_path: Path) -> None:
     assert "inside control" in raw.text
 
 
+def test_attaches_per_block_font_signal(tmp_path: Path) -> None:
+    """Each block carries its own font signal so the S3 normalizer can detect mixing."""
+    raw = DocxEngine().extract(_make_docx(tmp_path / "a.docx"), LoadOptions())
+    para = next(b for b in raw.signals["blocks"] if b.get("text") == "Tiếng Việt")
+    assert ".VnTime" in para["fonts"]
+
+
+def test_mixed_encoding_docx_converts_per_block_end_to_end(tmp_path: Path) -> None:
+    """A .VnTime (TCVN3) paragraph and a Unicode paragraph in one file (SPEC-3 T3.2.4).
+
+    The Unicode paragraph legitimately contains "®"; whole-document conversion would
+    turn it into "đ". Per-block detection must convert only the legacy paragraph.
+    """
+    from viparse.normalize.normalizer import VietnameseNormalizer
+
+    document = docx.Document()
+    legacy = document.add_paragraph().add_run("®¸")  # TCVN3 surface for "đá"
+    legacy.font.name = ".VnTime"
+    unicode_run = document.add_paragraph().add_run("viparse® 2026")  # already Unicode
+    unicode_run.font.name = "Arial"
+    path = tmp_path / "mixed.docx"
+    document.save(str(path))
+
+    raw = DocxEngine().extract(path, LoadOptions())
+    nd = VietnameseNormalizer().normalize(raw, LoadOptions())
+    assert "đá" in nd.text  # the legacy paragraph converted
+    assert "viparse® 2026" in nd.text  # the Unicode "®" is preserved, not mapped to "đ"
+    assert nd.encoding_detected == "tcvn3"
+
+
 def test_supports_only_docx() -> None:
     engine = DocxEngine()
     assert engine.supports(CONTENT_TYPE_DOCX)
