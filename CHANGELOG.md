@@ -6,6 +6,16 @@ All notable changes to viparse are documented here. The format is based on
 
 ## [Unreleased]
 
+### Added
+
+- **VPS legacy encoding** — added the VPS (Vietnamese Professional System) → Unicode
+  conversion table alongside TCVN3, VNI, and VISCII, selectable via an explicit
+  `encoding="vps"` override. VPS shares VISCII's Latin-1 surface bytes, so it is
+  intentionally excluded from content-frequency auto-detection to avoid mis-converting
+  genuine VISCII text. The 112-byte mapping is cross-verified against four independent
+  sources (vietunicode, the Encode::VN `.ucm`, `vietnameseConverter`, and
+  `py-unicode-convert`) (VIP-71).
+
 ## [0.1.3] — 2026-07-18
 
 ### Fixed
