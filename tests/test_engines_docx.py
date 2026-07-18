@@ -198,6 +198,56 @@ def test_mixed_encoding_docx_converts_per_block_end_to_end(tmp_path: Path) -> No
     assert nd.encoding_detected == "tcvn3"
 
 
+def test_attaches_per_run_font_signal(tmp_path: Path) -> None:
+    """A paragraph's runs each carry their own font, in order (SPEC-3 T3.2.4, per-run)."""
+    document = docx.Document()
+    paragraph = document.add_paragraph()
+    paragraph.add_run("abc").font.name = ".VnTime"
+    paragraph.add_run("def").font.name = "Arial"
+    path = tmp_path / "runs.docx"
+    document.save(str(path))
+    raw = DocxEngine().extract(path, LoadOptions())
+    block = next(b for b in raw.signals["blocks"] if b.get("type") == "paragraph")
+    assert block["runs"] == [
+        {"text": "abc", "font": ".VnTime"},
+        {"text": "def", "font": "Arial"},
+    ]
+
+
+def test_mixed_run_paragraph_converts_per_run_end_to_end(tmp_path: Path) -> None:
+    """A single paragraph mixing a .VnTime run and a Unicode run (SPEC-3 T3.2.4, VIP-72).
+
+    Whole-block conversion would corrupt the Unicode run's "®"; per-run detection must
+    convert only the legacy run.
+    """
+    from viparse.normalize.normalizer import VietnameseNormalizer
+
+    document = docx.Document()
+    paragraph = document.add_paragraph()
+    paragraph.add_run("®¸ ").font.name = ".VnTime"  # TCVN3 surface for "đá"
+    paragraph.add_run("viparse® 2026").font.name = "Arial"  # already Unicode
+    path = tmp_path / "mixedrun.docx"
+    document.save(str(path))
+
+    raw = DocxEngine().extract(path, LoadOptions())
+    nd = VietnameseNormalizer().normalize(raw, LoadOptions())
+    assert "đá" in nd.text  # the legacy run converted
+    assert "viparse® 2026" in nd.text  # the Unicode "®" is preserved, not mapped to "đ"
+    assert nd.encoding_detected == "tcvn3"
+
+
+def test_empty_heading_carries_no_run_signal(tmp_path: Path) -> None:
+    """An empty heading yields a heading block with no per-run signal (not skipped)."""
+    document = docx.Document()
+    document.add_heading("", level=1)
+    document.add_paragraph("body")
+    path = tmp_path / "emptyheading.docx"
+    document.save(str(path))
+    raw = DocxEngine().extract(path, LoadOptions())
+    heading = next(b for b in raw.signals["blocks"] if b.get("type") == "heading")
+    assert "runs" not in heading
+
+
 def test_supports_only_docx() -> None:
     engine = DocxEngine()
     assert engine.supports(CONTENT_TYPE_DOCX)

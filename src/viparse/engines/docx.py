@@ -133,15 +133,45 @@ def _collect_fonts(paragraph: Any, fonts: set[str]) -> None:
             fonts.add(run_style_font)
 
 
+def _run_font(run: Any, paragraph: Any) -> str | None:
+    """The effective font for a run: its own, else its character style, else the paragraph's.
+
+    Mirrors the inheritance in :func:`_collect_fonts` but resolved *per run*, so the S3
+    normalizer can detect a paragraph that mixes a legacy-font run with a Unicode one.
+    """
+    if run.font.name:
+        name: str = run.font.name
+        return name
+    return _style_font(run.style) or _style_font(paragraph.style)
+
+
+def _paragraph_runs(paragraph: Any) -> list[dict[str, Any]]:
+    """Per-run ``{text, font}`` segments whose texts concatenate back to ``paragraph.text``.
+
+    Empty runs are dropped (they contribute nothing to the text); this keeps the segment
+    list faithful so the normalizer can trust it for per-run conversion.
+    """
+    return [
+        {"text": run.text, "font": _run_font(run, paragraph)} for run in paragraph.runs if run.text
+    ]
+
+
 def _paragraph_block(paragraph: Any) -> dict[str, Any] | None:
     """Map a paragraph to a heading/paragraph block, or ``None`` if empty."""
     text = paragraph.text
     style = paragraph.style.name if paragraph.style is not None else ""
     if style.startswith("Heading"):
-        return {"type": "heading", "level": _heading_level(style), "text": text}
-    if not text.strip():
+        block: dict[str, Any] = {"type": "heading", "level": _heading_level(style), "text": text}
+    elif not text.strip():
         return None
-    return {"type": "paragraph", "text": text}
+    else:
+        block = {"type": "paragraph", "text": text}
+    # Per-run font signal (SPEC-3 T3.2.4): lets the normalizer convert a paragraph that
+    # mixes a legacy-font run with a Unicode one at run granularity, not whole-block.
+    runs = _paragraph_runs(paragraph)
+    if runs:
+        block["runs"] = runs
+    return block
 
 
 def _heading_level(style_name: str) -> int:
