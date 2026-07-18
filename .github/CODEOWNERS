@@ -1,0 +1,18 @@
+# Code owners for viparse.
+#
+# Owners listed here are automatically requested for review on pull requests that
+# touch matching paths. Whether their approval is *required* to merge is governed
+# by branch protection ("Require review from Code Owners") on `main`.
+#
+# Last match wins, so more specific paths override the default below.
+
+# Default owner for everything in the repo.
+*                        @minhtridinh-kayden
+
+# Supply-chain-sensitive surfaces — CI/CD, publishing, and dependency config.
+# A drive-by change here is the highest-risk kind, so it always flags for review.
+/.github/                @minhtridinh-kayden
+/pyproject.toml          @minhtridinh-kayden
+
+# The Vietnamese normalization layer — the product's moat.
+/src/viparse/normalize/  @minhtridinh-kayden
